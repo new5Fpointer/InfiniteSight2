@@ -848,6 +848,12 @@ void MainWindow::applyStyleSheet() {
     QString accent = "#007ACC";
     QString text = theme == "dark" ? "#E0E0E0" : "#000000";
     QString menuText = theme == "dark" ? "#CCCCCC" : "#000000";
+    QString menuBg = theme == "dark" ? "#2D2D30" : "#FFFFFF";
+    QString menuBorder = theme == "dark" ? "#3F3F46" : "#E0E0E0";
+    QString menuHoverBg = theme == "dark" ? "#3F3F46" : "#E0E0E0";
+    QString menuHoverText = theme == "dark" ? "#FFFFFF" : "#000000";
+    QString menuSep = theme == "dark" ? "#3F3F46" : "#E0E0E0";
+    QString menuDisabled = theme == "dark" ? "#666666" : "#999999";
     QString border = theme == "dark" ? "#1E1E1E" : "#CCCCCC";
     QString selected = theme == "dark" ? "#3F3F46" : "#E0E0E0";
     QString progressBg = theme == "dark" ? "#1E1E1E" : "#FFFFFF";
@@ -868,6 +874,14 @@ void MainWindow::applyStyleSheet() {
                         "  background-color: %1; color: %2; font-family: '%3'; font-size: %4pt; }"
                         "QMenuBar { background-color: %5; color: %6; border-bottom: 1px solid %7; }"
                         "QMenuBar::item:selected { background-color: %8; }"
+                        "QMenu { background-color: %22; border: 1px solid %23; padding: 6px 0px; }"
+                        "QMenu::item { padding: 8px 32px 8px 16px; margin: 0px 4px; border-radius: 4px; color: %6; min-width: 160px; }"
+                        "QMenu::item:selected { background-color: %24; color: %25; }"
+                        "QMenu::item:checked { color: %25; }"
+                        "QMenu::item:checked:selected { background-color: %24; }"
+                        "QMenu::item:disabled { color: %27; background-color: transparent; }"
+                        "QMenu::separator { height: 1px; background-color: %26; margin: 6px 12px; }"
+                        "QMenu::icon { padding-left: 12px; }"
                         "QTreeWidget::item:selected { background-color: %9; color: #FFFFFF; }"
                         "QProgressBar { border: 1px solid %7; border-radius: 3px; text-align: center;"
                         "  background-color: %10; color: %2; }"
@@ -904,7 +918,8 @@ void MainWindow::applyStyleSheet() {
                         .arg(titleBarBg, menuText, border, selected, accent, progressBg, scrollBg, scrollHandle, scrollHandleHover)
                         .arg(titleBarBg, titleBarText, btnHover, closeHover, bottomBarBg, viewBg)
                         .arg(bottomBarBgFullscreen)
-                        .arg(pageLabelBorder);
+                        .arg(pageLabelBorder)
+                        .arg(menuBg, menuBorder, menuHoverBg, menuHoverText, menuSep, menuDisabled);
 
     setStyleSheet(style);
 
@@ -1327,61 +1342,26 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 }
 
 void MainWindow::showCustomMenu() {
-    if (m_customMenu) {
-        m_customMenu->closeMenu();
-        delete m_customMenu;
-        m_customMenu = nullptr;
-    }
+    QMenu menu(this);
 
-    m_customMenu = new CustomMenu(this);
+    menu.addAction(tr("Open Image"), QKeySequence("Ctrl+O"), this, &MainWindow::openImage);
+    menu.addSeparator();
 
-    MenuItem openItem;
-    openItem.type = MenuItem::Action;
-    openItem.text = tr("Open Image");
-    openItem.shortcut = "Ctrl+O";
-    openItem.callback = [this]() { openImage(); };
-    m_customMenu->addMenuItem(openItem);
+    QMenu *themeMenu = menu.addMenu(tr("Change Theme"));
+    QAction *darkAction = themeMenu->addAction(tr("Professional Dark"));
+    darkAction->setCheckable(true);
+    darkAction->setChecked(m_settingsManager->appearance().theme == "dark");
+    connect(darkAction, &QAction::triggered, this, [this]() { switchTheme("dark"); });
 
-    m_customMenu->addSeparator();
+    QAction *lightAction = themeMenu->addAction(tr("Classic White"));
+    lightAction->setCheckable(true);
+    lightAction->setChecked(m_settingsManager->appearance().theme == "light");
+    connect(lightAction, &QAction::triggered, this, [this]() { switchTheme("light"); });
 
-    MenuItem themeItem;
-    themeItem.type = MenuItem::SubMenu;
-    themeItem.text = tr("Change Theme");
-
-    MenuItem darkSub;
-    darkSub.type = MenuItem::Action;
-    darkSub.text = tr("Professional Dark");
-    darkSub.checkable = true;
-    darkSub.checked = m_settingsManager->appearance().theme == "dark";
-    darkSub.callback = [this]() { switchTheme("dark"); };
-    themeItem.children.append(darkSub);
-
-    MenuItem lightSub;
-    lightSub.type = MenuItem::Action;
-    lightSub.text = tr("Classic White");
-    lightSub.checkable = true;
-    lightSub.checked = m_settingsManager->appearance().theme == "light";
-    lightSub.callback = [this]() { switchTheme("light"); };
-    themeItem.children.append(lightSub);
-
-    m_customMenu->addMenuItem(themeItem);
-
-    MenuItem settingsItem;
-    settingsItem.type = MenuItem::Action;
-    settingsItem.text = tr("Settings");
-    settingsItem.shortcut = "F10";
-    settingsItem.callback = [this]() { openSettings(); };
-    m_customMenu->addMenuItem(settingsItem);
-
-    m_customMenu->addSeparator();
-
-    MenuItem exitItem;
-    exitItem.type = MenuItem::Action;
-    exitItem.text = tr("Exit");
-    exitItem.shortcut = "Ctrl+Q";
-    exitItem.callback = [this]() { close(); };
-    m_customMenu->addMenuItem(exitItem);
+    menu.addAction(tr("Settings"), QKeySequence("F10"), this, &MainWindow::openSettings);
+    menu.addSeparator();
+    menu.addAction(tr("Exit"), QKeySequence("Ctrl+Q"), this, &QWidget::close);
 
     QPoint pos = m_menuBtn->mapToGlobal(QPoint(0, m_menuBtn->height()));
-    m_customMenu->popup(pos);
+    menu.exec(pos);
 }

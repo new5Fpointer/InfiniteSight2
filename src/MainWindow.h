@@ -2,7 +2,7 @@
 
 #include "ImageLoader.h"
 #include "SettingsManager.h"
-#include "CustomMenu.h"
+// #include "CustomMenu.h"
 #include <QAction>
 #include <QDockWidget>
 #include <QDragEnterEvent>
@@ -156,7 +156,7 @@ private:
     QLabel *m_loadingLabel;
     QLabel *m_roamLabel;
 
-    CustomMenu *m_customMenu = nullptr;
+    // CustomMenu *m_customMenu = nullptr;
     QMenu *m_fileMenu;
     QMenu *m_viewMenu;
     QMenu *m_settingsMenu;
