@@ -1,29 +1,31 @@
 #include "ImageLoader.h"
 #include "SettingsManager.h"
+#include <QDateTime>
+#include <QDebug>
 #include <QFileInfo>
 #include <QImageReader>
-#include <QDateTime>
 
 ImageLoader::ImageLoader(const QString &filePath,
                          const PerformanceSettings &perfSettings,
                          const QString &jobId,
                          QObject *parent)
-    : QObject(parent)
-    , m_filePath(filePath)
-    , m_perfSettings(perfSettings)
-    , m_jobId(jobId)
-{
+    : QObject(parent), m_filePath(filePath), m_perfSettings(perfSettings), m_jobId(jobId) {
 }
 
 void ImageLoader::load() {
-    if (m_canceled) return;
+    if (m_canceled)
+        return;
+
+    qDebug() << "ImageLoader: loading" << m_filePath;
 
     QPixmap pixmap;
     bool loaded = pixmap.load(m_filePath);
 
-    if (m_canceled) return;
+    if (m_canceled)
+        return;
 
     if (!loaded || pixmap.isNull()) {
+        qWarning() << "ImageLoader: failed to load" << m_filePath;
         emit finished(QPixmap(), QString("Error: Failed to load image"), m_jobId);
         return;
     }
@@ -32,12 +34,15 @@ void ImageLoader::load() {
 
     ImageInfo info = collectImageInfo();
 
-    if (m_canceled) return;
+    if (m_canceled)
+        return;
 
     emit progress(70);
     emit finished(pixmap, m_filePath, m_jobId);
     emit infoReady(info, m_jobId);
     emit progress(100);
+
+    qDebug() << "ImageLoader: finished" << m_filePath;
 }
 
 void ImageLoader::cancel() {

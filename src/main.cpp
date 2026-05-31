@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QSurfaceFormat>
 #include "MainWindow.h"
+#include "Logger.h"
 
 int main(int argc, char *argv[])
 {
@@ -13,8 +14,17 @@ int main(int argc, char *argv[])
     app.setApplicationName("InfiniteSight");
     app.setOrganizationName("InfiniteSight");
 
+    QString logDir = QCoreApplication::applicationDirPath() + QStringLiteral("/logs");
+    Logger::instance()->initialize(logDir);
+    qInfo() << "Application started";
+
     MainWindow window;
     window.show();
 
-    return app.exec();
+    int result = app.exec();
+
+    qInfo() << "Application exiting with code" << result;
+    Logger::instance()->shutdown();
+
+    return result;
 }
