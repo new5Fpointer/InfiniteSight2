@@ -171,7 +171,7 @@ void MainWindow::setupUi() {
     };
 
     m_menuBtn = createTitleBtn("menu");
-    connect(m_menuBtn, &QPushButton::clicked, this, &MainWindow::showCustomMenu);
+    connect(m_menuBtn, &QPushButton::clicked, this, &MainWindow::showMenu);
     titleLayout->addWidget(m_menuBtn);
 
     m_pinBtn = createTitleBtn("pin");
@@ -1341,7 +1341,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
     }
 }
 
-void MainWindow::showCustomMenu() {
+void MainWindow::showMenu() {
     QMenu menu(this);
 
     menu.addAction(tr("Open Image"), QKeySequence("Ctrl+O"), this, &MainWindow::openImage);
