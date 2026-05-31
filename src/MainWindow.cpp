@@ -982,11 +982,28 @@ void MainWindow::refreshToolBarIcons() {
         updateMaximizeIcon();
 }
 
+static QString elideFileName(const QString &fileName, int maxLength) {
+    if (fileName.length() <= maxLength) {
+        return fileName;
+    }
+    const QString ellipsis = QStringLiteral("...");
+    int keep = maxLength - ellipsis.length();
+    if (keep <= 0) {
+        return ellipsis;
+    }
+    int left = keep / 2;
+    int right = keep - left;
+    QString result = fileName.left(left) + ellipsis + fileName.right(right);
+    qInfo() << "Title truncated:" << fileName << "->" << result;
+    return result;
+}
+
 void MainWindow::updateTitleBarTitle() {
     if (m_currentImagePath.isEmpty()) {
         m_titleLabel->setText(tr("InfiniteSight"));
     } else {
-        m_titleLabel->setText(QFileInfo(m_currentImagePath).fileName());
+        QString fileName = QFileInfo(m_currentImagePath).fileName();
+        m_titleLabel->setText(elideFileName(fileName, 50));
     }
 }
 
