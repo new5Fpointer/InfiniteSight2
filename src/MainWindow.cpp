@@ -246,7 +246,7 @@ void MainWindow::setupUi() {
     mainLayout->addWidget(m_splitter);
     setCentralWidget(mainWidget);
 
-    qDebug().noquote() << "Ready";
+    qInfo() << "MainWindow initialized";
 }
 
 void MainWindow::createTitleBar() {
@@ -398,7 +398,7 @@ void MainWindow::createBottomBar() {
     connect(m_copyBtn, &QPushButton::clicked, this, [this]() {
         if (m_pixmapItem && !m_pixmapItem->pixmap().isNull()) {
             QApplication::clipboard()->setPixmap(m_pixmapItem->pixmap());
-            qDebug().noquote() << tr("Image copied to clipboard");
+            qInfo() << "Image copied to clipboard:" << QFileInfo(m_currentImagePath).fileName();
         }
     });
     centerLayout->addWidget(m_copyBtn);
@@ -411,10 +411,10 @@ void MainWindow::createBottomBar() {
 
         QFile file(m_currentImagePath);
         if (!file.moveToTrash()) {
-            qDebug() << "Delete failed:" << file.errorString();
+            qWarning() << "Failed to move image to trash:" << file.errorString();
             return;
         }
-        qDebug() << "Image deleted";
+        qInfo() << "Image moved to trash:" << QFileInfo(m_currentImagePath).fileName();
 
         int currentIndex = m_currentFolderIndex;
         m_currentFolderImages.removeAt(currentIndex);
@@ -597,7 +597,7 @@ void MainWindow::openSettings() {
     SettingsWindow dialog(m_settingsManager, this);
     connect(&dialog, &SettingsWindow::settingsApplied, this, &MainWindow::applySettings);
     if (dialog.exec() == QDialog::Accepted) {
-        qDebug().noquote() << tr("Settings applied successfully");
+        qInfo() << "Settings applied";
     }
 }
 
@@ -728,7 +728,7 @@ void MainWindow::startImageLoading(const QString &filePath) {
 
     stopCurrentLoading();
 
-    qDebug().noquote() << tr("Loading: %1...").arg(QFileInfo(filePath).fileName());
+    qInfo() << "Loading image:" << QFileInfo(filePath).fileName();
     m_graphicsScene->clear();
     m_loadingLabel->setVisible(true);
     m_progressBar->setVisible(true);
@@ -752,7 +752,7 @@ void MainWindow::onImageLoaded(const QPixmap &pixmap, const QString &filePath, c
     if (jobId != m_currentJobId)
         return;
     if (pixmap.isNull()) {
-        qDebug().noquote() << tr("Error loading image");
+        qWarning() << "Failed to load image:" << QFileInfo(filePath).fileName();
         return;
     }
 
@@ -777,7 +777,7 @@ void MainWindow::onImageLoaded(const QPixmap &pixmap, const QString &filePath, c
 
     m_loadingLabel->setVisible(false);
     m_progressBar->setVisible(false);
-    qDebug().noquote() << tr("Loaded: %1").arg(QFileInfo(filePath).fileName());
+    qInfo() << "Image loaded:" << QFileInfo(filePath).fileName();
 
     stopCurrentLoading();
     initFolderRoaming(filePath);
@@ -1258,7 +1258,7 @@ void MainWindow::updateRoamStatus() {
     QString folder = QFileInfo(m_currentImagePath).dir().dirName();
     int curr = m_currentFolderIndex + 1;
     int total = m_currentFolderImages.size();
-    qDebug().noquote() << tr("Image %1 of %2 in %3").arg(curr).arg(total).arg(folder);
+    qDebug() << "Navigation:" << curr << "of" << total << "in folder" << folder;
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {

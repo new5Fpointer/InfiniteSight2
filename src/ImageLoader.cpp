@@ -16,7 +16,7 @@ void ImageLoader::load() {
     if (m_canceled)
         return;
 
-    qDebug() << "ImageLoader: loading" << m_filePath;
+    qDebug() << "Loading image:" << QFileInfo(m_filePath).fileName();
 
     QPixmap pixmap;
     bool loaded = pixmap.load(m_filePath);
@@ -25,7 +25,7 @@ void ImageLoader::load() {
         return;
 
     if (!loaded || pixmap.isNull()) {
-        qWarning() << "ImageLoader: failed to load" << m_filePath;
+        qWarning() << "Failed to load image:" << QFileInfo(m_filePath).fileName();
         emit finished(QPixmap(), QString("Error: Failed to load image"), m_jobId);
         return;
     }
@@ -42,7 +42,7 @@ void ImageLoader::load() {
     emit infoReady(info, m_jobId);
     emit progress(100);
 
-    qDebug() << "ImageLoader: finished" << m_filePath;
+    qDebug() << "Image loaded successfully:" << QFileInfo(m_filePath).fileName();
 }
 
 void ImageLoader::cancel() {
