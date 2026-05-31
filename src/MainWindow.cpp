@@ -451,6 +451,16 @@ void MainWindow::createBottomBar() {
         lay->addWidget(m_bottomBar);
     }
     m_bottomBarInLayout = true;
+
+    QTimer::singleShot(0, this, [this]() { updateCenterContainerPos(); });
+}
+
+void MainWindow::updateCenterContainerPos() {
+    if (m_bottomBar && m_centerContainer) {
+        int x = (m_bottomBar->width() - m_centerContainer->width()) / 2;
+        int y = (m_bottomBar->height() - m_centerContainer->height()) / 2;
+        m_centerContainer->move(x, y);
+    }
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event) {
@@ -459,11 +469,7 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
         int barHeight = m_bottomBar->height();
         m_bottomBar->setGeometry(0, height() - barHeight, width(), barHeight);
     }
-    if (m_bottomBar && m_centerContainer) {
-        int x = (m_bottomBar->width() - m_centerContainer->width()) / 2;
-        int y = (m_bottomBar->height() - m_centerContainer->height()) / 2;
-        m_centerContainer->move(x, y);
-    }
+    updateCenterContainerPos();
 }
 
 void MainWindow::createMenus() {

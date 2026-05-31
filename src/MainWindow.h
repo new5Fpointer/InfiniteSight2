@@ -106,6 +106,7 @@ private:
     void refreshToolBarIcons();
     void updateTitleBarTitle();
     void updateBottomBarInfo();
+    void updateCenterContainerPos();
 
     SettingsManager *m_settingsManager;
 
