@@ -95,7 +95,9 @@ void Logger::writeLog(QtMsgType type, const QMessageLogContext &context, const Q
 
     QString fileInfo;
     if (context.file && context.line > 0) {
-        fileInfo = QStringLiteral(" [%1:%2]").arg(QString::fromUtf8(context.file)).arg(context.line);
+        QString filePath = QString::fromUtf8(context.file);
+        QFileInfo fi(filePath);
+        fileInfo = QStringLiteral(" [%1:%2]").arg(fi.fileName()).arg(context.line);
     }
 
     QString line = QStringLiteral("[%1] [%2]%3 %4\n")
