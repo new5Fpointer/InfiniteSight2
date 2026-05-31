@@ -106,6 +106,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_settingsManager(new SettingsManager(this)), m_graphicsView(new ZoomableGraphicsView(this)),
       m_graphicsScene(new QGraphicsScene(this)), m_pixmapItem(nullptr), m_progressBar(new QProgressBar(this)),
       m_loadingLabel(new QLabel(this)), m_roamLabel(new QLabel(this)), m_loaderThread(nullptr), m_imageLoader(nullptr),
+      m_fileInfoLabel(nullptr), m_fileSizeLabel(nullptr), m_fileDimensionLabel(nullptr), m_fileFormatLabel(nullptr),
       m_scaleFactor(1.0), m_currentFolderIndex(-1), m_imageWidth(0), m_imageHeight(0), m_fileSize(0), m_dragging(false) {
     setWindowTitle("InfiniteSight");
     setGeometry(100, 100, 1400, 900);
@@ -423,6 +424,7 @@ void MainWindow::createBottomBar() {
             m_pixmapItem = nullptr;
             m_currentImagePath.clear();
             m_currentFolderIndex = -1;
+            m_scaleFactor = 1.0;
             updateTitleBarTitle();
             updateBottomBarInfo();
         } else {
@@ -992,7 +994,7 @@ void MainWindow::updateBottomBarInfo() {
             m_fileDimensionLabel->setText("");
         if (m_fileFormatLabel)
             m_fileFormatLabel->setText("");
-        m_pageLabel->setText("0 / 0");
+        m_pageLabel->setText("0/0");
         m_zoomCombo->setText("100%");
         return;
     }
