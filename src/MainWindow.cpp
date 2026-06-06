@@ -15,6 +15,7 @@
 #include <QMimeData>
 #include <QMovie>
 #include <QOpenGLWidget>
+#include <QPainter>
 #include <QScrollBar>
 #include <QSplitter>
 #include <QStyle>
@@ -43,6 +44,57 @@ ZoomableGraphicsView::ZoomableGraphicsView(QWidget *parent)
     //         return fmt;
     //     }());
     // }
+}
+
+void ZoomableGraphicsView::drawBackground(QPainter *painter, const QRectF &rect) {
+    QGraphicsView::drawBackground(painter, rect);
+
+    if (!scene())
+        return;
+
+    QGraphicsPixmapItem *pixmapItem = nullptr;
+    for (QGraphicsItem *item : scene()->items()) {
+        if (auto *pItem = qgraphicsitem_cast<QGraphicsPixmapItem *>(item)) {
+            if (pItem->pixmap().hasAlphaChannel()) {
+                pixmapItem = pItem;
+                break;
+            }
+        }
+    }
+
+    if (!pixmapItem)
+        return;
+
+    qreal scale = transform().m11();
+    if (scale <= 0)
+        scale = 1.0;
+    int gridSize = qBound(4, int(20 / scale), 64);
+
+    QRectF imageRect = pixmapItem->sceneBoundingRect();
+    QRectF intersectRect = rect.intersected(imageRect);
+
+    if (intersectRect.isEmpty())
+        return;
+
+    painter->setRenderHint(QPainter::Antialiasing, false);
+
+    QColor light(240, 240, 240);
+    QColor dark(200, 200, 200);
+
+    int xStart = qFloor(intersectRect.x() / gridSize) * gridSize;
+    int yStart = qFloor(intersectRect.y() / gridSize) * gridSize;
+
+    for (int y = yStart; y < qCeil(intersectRect.bottom()); y += gridSize) {
+        for (int x = xStart; x < qCeil(intersectRect.right()); x += gridSize) {
+            QRectF cell(x, y, gridSize, gridSize);
+            QRectF drawRect = cell.intersected(intersectRect);
+            if (drawRect.isEmpty())
+                continue;
+
+            bool isLight = ((x / gridSize) + (y / gridSize)) % 2 == 0;
+            painter->fillRect(drawRect, isLight ? light : dark);
+        }
+    }
 }
 
 void ZoomableGraphicsView::wheelEvent(QWheelEvent *event) {

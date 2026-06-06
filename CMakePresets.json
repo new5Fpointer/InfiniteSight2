@@ -20,32 +20,6 @@
       "cacheVariables": {
         "VIPS_ROOT": "$env{VIPS_ROOT}"
       }
-    },
-    {
-      "name": "debug",
-      "displayName": "Debug",
-      "inherits": ["Qt", "vips"],
-      "generator": "Visual Studio 17 2022",
-      "architecture": {
-        "value": "x64",
-        "strategy": "set"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "release",
-      "displayName": "Release",
-      "inherits": ["Qt", "vips"],
-      "generator": "Visual Studio 17 2022",
-      "architecture": {
-        "value": "x64",
-        "strategy": "set"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
     }
   ],
   "vendor": {

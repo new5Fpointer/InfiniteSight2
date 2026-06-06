@@ -33,6 +33,7 @@ public:
     explicit ZoomableGraphicsView(QWidget *parent = nullptr);
 
 protected:
+    void drawBackground(QPainter *painter, const QRectF &rect) override;
     void wheelEvent(QWheelEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
