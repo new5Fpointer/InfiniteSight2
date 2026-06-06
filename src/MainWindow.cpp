@@ -753,6 +753,12 @@ void MainWindow::onImageLoaded(const QPixmap &pixmap, const QString &filePath, c
         return;
     if (pixmap.isNull()) {
         qWarning() << "Failed to load image:" << QFileInfo(filePath).fileName();
+        updateRoamStatus();
+        updateTitleBarTitle();
+        updateBottomBarInfo();
+        m_loadingLabel->setVisible(false);
+        m_progressBar->setVisible(false);
+        stopCurrentLoading();
         return;
     }
 
