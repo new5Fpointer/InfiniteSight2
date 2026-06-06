@@ -3,7 +3,10 @@
   "configurePresets": [
     {
       "name": "Qt-Debug",
-      "inherits": "Qt-Default",
+      "inherits": [
+        "Qt-Default",
+        "vcpkg"
+      ],
       "binaryDir": "${sourceDir}/out/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
@@ -15,7 +18,10 @@
     },
     {
       "name": "Qt-Release",
-      "inherits": "Qt-Default",
+      "inherits": [
+        "Qt-Default",
+        "vcpkg"
+      ],
       "binaryDir": "${sourceDir}/out/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -34,10 +40,13 @@
     {
       "hidden": true,
       "name": "6.10.2_msvc2022_64",
-      "inherits": "Qt",
+      "inherits": [
+        "Qt",
+        "vips"
+      ],
       "environment": {
         "QTDIR": "D:/Qt/6.10.2/msvc2022_64",
-        "VIPS_ROOT": "${sourceDir}/bin/vips-dev-8.18"
+        "VIPS_ROOT": "${sourceDir}/bin/vips-msvc"
       },
       "architecture": {
         "strategy": "external",

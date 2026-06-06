@@ -15,6 +15,12 @@
     },
     {
       "hidden": true,
+      "name": "vcpkg",
+      "description": "Enables vcpkg toolchain for dependency resolution",
+      "toolchainFile": "E:/code/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    },
+    {
+      "hidden": true,
       "name": "vips",
       "description": "Sets VIPS_ROOT for libvips detection",
       "cacheVariables": {

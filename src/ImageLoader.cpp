@@ -1,3 +1,7 @@
+#ifdef HAS_LIBVIPS
+#include <vips/vips8>
+#endif
+
 #include "ImageLoader.h"
 #include "SettingsManager.h"
 #include <QDateTime>
@@ -68,7 +72,6 @@ ImageInfo ImageLoader::collectImageInfo() {
         info.imageInfo["Dimensions"] = QString("%1 x %2 pixels")
                                            .arg(reader.size().width())
                                            .arg(reader.size().height());
-        // physicalSize() is not available in Qt 6.10; DPI info would need QImage
         info.imageInfo["DPI"] = QString("N/A");
     }
 

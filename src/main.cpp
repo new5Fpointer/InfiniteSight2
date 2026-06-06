@@ -1,3 +1,7 @@
+#ifdef HAS_LIBVIPS
+#include <vips/vips8>
+#endif
+
 #include <QApplication>
 #include <QSurfaceFormat>
 #include "MainWindow.h"
@@ -5,6 +9,11 @@
 
 int main(int argc, char *argv[])
 {
+#ifdef HAS_LIBVIPS
+    if (VIPS_INIT(argv[0]))
+        return 1;
+#endif
+
     QSurfaceFormat fmt;
     fmt.setSamples(4);
     QSurfaceFormat::setDefaultFormat(fmt);
@@ -25,6 +34,10 @@ int main(int argc, char *argv[])
 
     qInfo() << "Application exiting with code" << result;
     Logger::instance()->shutdown();
+
+#ifdef HAS_LIBVIPS
+    vips_shutdown();
+#endif
 
     return result;
 }

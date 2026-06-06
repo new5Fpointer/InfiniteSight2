@@ -52,6 +52,26 @@ if(VIPS_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${VIPS_LIBRARIES})
     target_compile_definitions(${PROJECT_NAME} PRIVATE ${VIPS_DEFINITIONS})
     message(STATUS "libvips found: ${VIPS_VERSION}")
+
+    # Auto-copy vips DLLs to output directory on Windows
+    if(WIN32)
+        foreach(_lib IN LISTS VIPS_LIBRARIES)
+            if(EXISTS "${_lib}")
+                get_filename_component(_lib_dir "${_lib}" DIRECTORY)
+                file(GLOB _vips_dlls "${_lib_dir}/../bin/*.dll")
+                foreach(_dll IN LISTS _vips_dlls)
+                    get_filename_component(_dll_name "${_dll}" NAME)
+                    if(_dll_name MATCHES "vips|glib|gobject|gmodule|gio|gthread|intl|iconv|pcre|ffi|z|jpeg|png|tiff|webp|expat|harfbuzz|freetype|fontconfig|cairo|pixman|rsvg|xml|lzma|bz2|sqlite|crypto|ssl|curl|nghttp|brotli")
+                        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                            "${_dll}"
+                            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+                        )
+                    endif()
+                endforeach()
+            endif()
+        endforeach()
+    endif()
 else()
     message(WARNING "libvips not found. Large image support will be disabled. Set VIPS_ROOT to a vips-dev installation.")
 endif()
