@@ -257,27 +257,70 @@ void ImageLoader::loadVipsFull() {
 
         int outWidth = image.width();
         int outHeight = image.height();
+        int bands = image.bands();
 
-        qDebug() << "VipsFull loaded:" << outWidth << "x" << outHeight;
+        qDebug() << "VipsFull loaded:" << outWidth << "x" << outHeight << "bands:" << bands;
 
-        // 写入 PNG 内存缓冲区，然后构造 QImage
-        size_t bufSize = 0;
-        void *buf = nullptr;
-        image.write_to_buffer(".png", &buf, &bufSize);
+        // 统一转换为 8 位 sRGB 或 sRGBA
+        vips::VImage converted = image;
+        if (image.format() != VIPS_FORMAT_UCHAR) {
+            converted = converted.cast(VIPS_FORMAT_UCHAR);
+        }
 
-        if (!buf || bufSize == 0) {
-            qWarning() << "VipsFull write_to_buffer failed";
+        if (bands == 1) {
+            // 灰度图 -> RGB (3 bands)
+            converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
+            bands = 3;
+        } else if (bands == 2) {
+            // 灰度+alpha -> RGBA (4 bands)
+            converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
+            // 提取 alpha 通道并合并
+            vips::VImage alpha = image.extract_band(1);
+            converted = converted.bandjoin(alpha);
+            bands = 4;
+        } else if (bands == 3) {
+            // RGB -> 保持
+        } else if (bands == 4) {
+            // RGBA -> 保持
+        } else if (bands > 4) {
+            // CMYK 等 -> 转 sRGB
+            converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
+            bands = 3;
+        }
+
+        // 直接写入内存原始像素数据
+        // vips 的 sRGB 内存数据是 RGB 顺序，QImage 的 Format_RGB888 也是 RGB 顺序，无需交换
+        size_t memSize = 0;
+        void *memBuf = vips_image_write_to_memory(converted.get_image(), &memSize);
+        if (!memBuf || memSize == 0) {
+            qWarning() << "VipsFull write_to_memory failed";
             loadStandard();
             return;
         }
 
-        // vips::VImage 会自动释放 vipsImage，不需要手动 g_object_unref
-
-        QImage qimg;
-        if (buf && bufSize > 0) {
-            qimg = QImage::fromData(static_cast<const uchar *>(buf), static_cast<int>(bufSize));
-            g_free(buf);
+        // 根据 bands 选择 QImage 格式
+        int finalBands = converted.bands();
+        QImage::Format qFormat;
+        int bytesPerPixel;
+        if (finalBands == 3) {
+            qFormat = QImage::Format_RGB888;
+            bytesPerPixel = 3;
+        } else if (finalBands == 4) {
+            qFormat = QImage::Format_RGBA8888;
+            bytesPerPixel = 4;
+        } else {
+            qWarning() << "VipsFull: unsupported bands:" << finalBands;
+            g_free(memBuf);
+            loadStandard();
+            return;
         }
+
+        // vips 内存数据没有行对齐，QImage 需要指定正确的 bytesPerLine
+        int vipsBytesPerLine = outWidth * bytesPerPixel;
+        QImage qimg(static_cast<const uchar *>(memBuf), outWidth, outHeight, vipsBytesPerLine, qFormat);
+        // 深拷贝（QImage 使用共享数据，需要确保内存释放后数据仍然有效）
+        qimg = qimg.copy();
+        g_free(memBuf);
 
         if (qimg.isNull()) {
             qWarning() << "Vips full: QImage from buffer failed, falling back";
