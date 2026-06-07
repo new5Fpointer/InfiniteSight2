@@ -13,18 +13,11 @@ struct ImageInfo {
     QString error;
 };
 
-enum class LoadStrategy {
-    Standard,      // QPixmap::load，适用于普通图片
-    VipsThumbnail, // libvips 缩略图，适用于超大图片快速预览
-    VipsFull,      // libvips 全图加载，适用于超大图片完整查看
-    Tile           // 分块加载，适用于巨型图片（未来扩展）
-};
-
 struct LoadResult {
     QPixmap pixmap;
     ImageInfo info;
     QString error;
-    bool isDownsampled = false;  // 是否已降采样
+    bool isDownsampled = false;
     int originalWidth = 0;
     int originalHeight = 0;
 };
@@ -38,7 +31,6 @@ public:
                          const QString &jobId,
                          QObject *parent = nullptr);
 
-    static LoadStrategy detectStrategy(const QString &filePath, const PerformanceSettings &perf);
     static bool isSupportedByVips(const QString &filePath);
     static qint64 fileSize(const QString &filePath);
 
@@ -54,7 +46,6 @@ signals:
 
 private:
     void loadStandard();
-    void loadVipsThumbnail();
     void loadVipsFull();
 
     ImageInfo collectImageInfo();
@@ -64,5 +55,4 @@ private:
     PerformanceSettings m_perfSettings;
     QString m_jobId;
     bool m_canceled = false;
-    LoadStrategy m_strategy = LoadStrategy::Standard;
 };

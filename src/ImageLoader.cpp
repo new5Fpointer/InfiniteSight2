@@ -11,19 +11,11 @@
 #include <QImageReader>
 #include <QScreen>
 
-// 策略阈值常量
-static constexpr qint64 SMALL_FILE_THRESHOLD = 2LL << 20;   // 2 MB
-static constexpr qint64 LARGE_FILE_THRESHOLD = 256LL << 20; // 256 MB
-static constexpr qint64 HUGE_FILE_THRESHOLD = 1024LL << 20; // 1 GB
-static constexpr int MAX_DISPLAY_EDGE = 8192;               // 最大显示边长
-static constexpr int THUMBNAIL_EDGE = 4096;                 // 缩略图边长
-
 ImageLoader::ImageLoader(const QString &filePath,
                          const PerformanceSettings &perfSettings,
                          const QString &jobId,
                          QObject *parent)
     : QObject(parent), m_filePath(filePath), m_perfSettings(perfSettings), m_jobId(jobId) {
-    m_strategy = detectStrategy(filePath, perfSettings);
 }
 
 qint64 ImageLoader::fileSize(const QString &filePath) {
@@ -43,34 +35,16 @@ bool ImageLoader::isSupportedByVips(const QString &filePath) {
 #endif
 }
 
-LoadStrategy ImageLoader::detectStrategy(const QString &filePath, const PerformanceSettings &perf) {
-    bool vipsAvailable = isSupportedByVips(filePath);
-
-    if (!vipsAvailable) {
-        return LoadStrategy::Standard;
-    }
-
-    return LoadStrategy::VipsFull;
-}
-
 void ImageLoader::load() {
     if (m_canceled)
         return;
 
-    qDebug() << "Loading image:" << QFileInfo(m_filePath).fileName()
-             << "strategy:" << static_cast<int>(m_strategy);
+    qDebug() << "Loading image:" << QFileInfo(m_filePath).fileName();
 
-    switch (m_strategy) {
-    case LoadStrategy::VipsThumbnail:
-        loadVipsThumbnail();
-        break;
-    case LoadStrategy::VipsFull:
+    if (isSupportedByVips(m_filePath)) {
         loadVipsFull();
-        break;
-    case LoadStrategy::Standard:
-    default:
+    } else {
         loadStandard();
-        break;
     }
 }
 
@@ -118,102 +92,6 @@ void ImageLoader::loadStandard() {
 
     qDebug() << "Image loaded successfully (Standard):" << QFileInfo(m_filePath).fileName()
              << "size:" << pixmap.width() << "x" << pixmap.height();
-}
-
-void ImageLoader::loadVipsThumbnail() {
-#ifdef HAS_LIBVIPS
-    if (m_canceled)
-        return;
-    emit progress(10);
-
-    try {
-        // Windows 下 vips 需要正斜杠路径
-        QString normalizedPath = m_filePath;
-        normalizedPath.replace('\\', '/');
-
-        // 检查文件是否存在
-        if (!QFileInfo(m_filePath).exists()) {
-            qWarning() << "VipsThumbnail: File does not exist:" << m_filePath;
-            loadStandard();
-            return;
-        }
-
-        QByteArray pathBytes = normalizedPath.toUtf8();
-        const char *path = pathBytes.constData();
-
-        qDebug() << "VipsThumbnail loading:" << normalizedPath;
-        qDebug() << "VipsThumbnail path bytes length:" << pathBytes.length();
-
-        // 使用 C API 直接调用，避免 C++ 包装器的问题
-        VipsImage *vipsImage = nullptr;
-        if (vips_thumbnail(path, &vipsImage, THUMBNAIL_EDGE, NULL) != 0) {
-            const char *err = vips_error_buffer();
-            qWarning() << "VipsThumbnail C API failed:" << err;
-            vips_error_clear();
-            loadStandard();
-            return;
-        }
-
-        vips::VImage image(vipsImage);
-
-        if (m_canceled)
-            return;
-        emit progress(50);
-
-        int origWidth = image.width();
-        int origHeight = image.height();
-
-        // 写入 PNG 内存缓冲区，然后构造 QImage
-        size_t bufSize = 0;
-        void *buf = nullptr;
-        image.write_to_buffer(".png", &buf, &bufSize);
-
-        QImage qimg;
-        if (buf && bufSize > 0) {
-            qimg = QImage::fromData(static_cast<const uchar *>(buf), static_cast<int>(bufSize));
-            g_free(buf);
-        }
-
-        if (qimg.isNull()) {
-            qWarning() << "Vips thumbnail: QImage from buffer failed, falling back";
-            loadStandard();
-            return;
-        }
-
-        if (m_canceled)
-            return;
-        emit progress(80);
-
-        QPixmap pixmap = QPixmap::fromImage(qimg);
-
-        ImageInfo info = collectVipsImageInfo();
-        info.imageInfo["Load Strategy"] = "VipsThumbnail (Downsampled)";
-        info.imageInfo["Original Dimensions"] = QString("%1 x %2").arg(origWidth).arg(origHeight);
-        info.imageInfo["Display Dimensions"] = QString("%1 x %2").arg(qimg.width()).arg(qimg.height());
-
-        emit finished(pixmap, m_filePath, m_jobId);
-        emit infoReady(info, m_jobId);
-        emit progress(100);
-
-        LoadResult result;
-        result.pixmap = pixmap;
-        result.info = info;
-        result.isDownsampled = true;
-        result.originalWidth = origWidth;
-        result.originalHeight = origHeight;
-        emit loadResultReady(result, m_jobId);
-
-        qDebug() << "Image loaded successfully (VipsThumbnail):" << QFileInfo(m_filePath).fileName()
-                 << "original:" << origWidth << "x" << origHeight
-                 << "display:" << qimg.width() << "x" << qimg.height();
-
-    } catch (const vips::VError &e) {
-        qWarning() << "Vips thumbnail load failed:" << e.what() << "- falling back to standard";
-        loadStandard();
-    }
-#else
-    loadStandard();
-#endif
 }
 
 void ImageLoader::loadVipsFull() {
