@@ -193,6 +193,9 @@ private:
     int m_originalImageWidth = 0;
     int m_originalImageHeight = 0;
 
+    // 防止多次点击打开多个文件对话框
+    bool m_isFileDialogOpen = false;
+
 private slots:
     void onLoadResultReady(const LoadResult &result, const QString &jobId);
 };

@@ -159,7 +159,8 @@ MainWindow::MainWindow(QWidget *parent)
       m_graphicsScene(new QGraphicsScene(this)), m_pixmapItem(nullptr), m_progressBar(new QProgressBar(this)),
       m_loadingLabel(new QLabel(this)), m_roamLabel(new QLabel(this)), m_loaderThread(nullptr), m_imageLoader(nullptr),
       m_fileInfoLabel(nullptr), m_fileSizeLabel(nullptr), m_fileDimensionLabel(nullptr), m_fileFormatLabel(nullptr),
-      m_scaleFactor(1.0), m_currentFolderIndex(-1), m_imageWidth(0), m_imageHeight(0), m_fileSize(0), m_dragging(false) {
+      m_scaleFactor(1.0), m_currentFolderIndex(-1), m_imageWidth(0), m_imageHeight(0), m_fileSize(0), m_dragging(false),
+      m_isFileDialogOpen(false) {
     setWindowTitle("InfiniteSight");
     setGeometry(100, 100, 1400, 900);
     setAcceptDrops(true);
@@ -627,8 +628,13 @@ void MainWindow::createToolBar() {
 }
 
 void MainWindow::openImage() {
+    if (m_isFileDialogOpen)
+        return;
+
+    m_isFileDialogOpen = true;
     QString filePath = QFileDialog::getOpenFileName(this, tr("Open Image"), "",
                                                     tr("Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp)"));
+    m_isFileDialogOpen = false;
 
     if (!filePath.isEmpty()) {
         stopCurrentLoading();
