@@ -2,16 +2,32 @@
 #include <vips/vips8>
 #endif
 
+#include "Logger.h"
+#include "MainWindow.h"
 #include <QApplication>
 #include <QSurfaceFormat>
-#include "MainWindow.h"
-#include "Logger.h"
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 #ifdef HAS_LIBVIPS
-    if (VIPS_INIT(argv[0]))
+    // 初始化 libvips，传递 argv[0] 作为程序名
+    if (VIPS_INIT(argv[0])) {
+        qCritical() << "Failed to initialize libvips";
         return 1;
+    }
+    qInfo() << "libvips initialized successfully";
+
+    // 如果传入了测试图片路径，进行测试加载
+    if (argc > 1) {
+        QString testPath = QString::fromLocal8Bit(argv[1]);
+        qInfo() << "Testing vips image load:" << testPath;
+
+        try {
+            vips::VImage image = vips::VImage::thumbnail(testPath.toUtf8().constData(), 1024);
+            qInfo() << "Vips test successful - Image size:" << image.width() << "x" << image.height();
+        } catch (const vips::VError &e) {
+            qCritical() << "Vips test failed:" << e.what();
+        }
+    }
 #endif
 
     QSurfaceFormat fmt;

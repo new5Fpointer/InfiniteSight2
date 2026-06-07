@@ -1,45 +1,84 @@
 #include "ImageCache.h"
-#include <QDir>
-#include <QStandardPaths>
-#include <QCryptographicHash>
+#include <QDateTime>
+#include <QDebug>
 #include <QFileInfo>
 
-QString ImageCache::cacheDir() {
-    QString path = QDir::tempPath() + "/InfiniteSight_cache";
-    QDir().mkpath(path);
-    return path;
+ImageCache::ImageCache()
+    : m_cache(100) { // 最多 100 个条目，cost 由我们自己计算
+    m_cache.setMaxCost(m_maxCostMB * 1024 * 1024); // 转换为字节
 }
 
-QString ImageCache::cacheKey(const QString &filePath, int maxEdge) {
-    QByteArray hash = QCryptographicHash::hash(filePath.toUtf8(), QCryptographicHash::Md5).toHex();
-    return QString("%1_%2.jpg").arg(QString(hash)).arg(maxEdge);
+ImageCache::~ImageCache() {
+    clear();
 }
 
-bool ImageCache::isVeryLarge(const QString &filePath, qint64 thresholdBytes) {
-    QFileInfo fi(filePath);
-    return fi.exists() && fi.size() > thresholdBytes;
+ImageCache &ImageCache::instance() {
+    static ImageCache cache;
+    return cache;
 }
 
-QPixmap ImageCache::loadThumbnail(const QString &filePath, int maxEdge) {
-    QString cacheFile = cacheDir() + "/" + cacheKey(filePath, maxEdge);
+void ImageCache::setMaxCost(int maxCostMB) {
+    QMutexLocker locker(&m_mutex);
+    m_maxCostMB = maxCostMB;
+    m_cache.setMaxCost(maxCostMB * 1024 * 1024);
+}
 
-    if (!QFile::exists(cacheFile)) {
-        QPixmap source(filePath);
-        if (source.isNull()) return QPixmap();
+bool ImageCache::contains(const QString &filePath) const {
+    QMutexLocker locker(&m_mutex);
+    return m_cache.contains(filePath);
+}
 
-        QPixmap thumbnail = source.scaled(maxEdge, maxEdge,
-                                          Qt::KeepAspectRatio,
-                                          Qt::SmoothTransformation);
-        thumbnail.save(cacheFile, "JPEG", 90);
-        return thumbnail;
+QPixmap ImageCache::getPixmap(const QString &filePath) const {
+    QMutexLocker locker(&m_mutex);
+    CacheEntry *entry = m_cache.object(filePath);
+    if (entry) {
+        entry->timestamp = QDateTime::currentMSecsSinceEpoch();
+        return entry->pixmap;
     }
-
-    return QPixmap(cacheFile);
+    return QPixmap();
 }
 
-QPixmap ImageCache::loadTile(const QString &filePath, int x, int y, int w, int h) {
-    QPixmap source(filePath);
-    if (source.isNull()) return QPixmap();
+CacheEntry ImageCache::getEntry(const QString &filePath) const {
+    QMutexLocker locker(&m_mutex);
+    CacheEntry *entry = m_cache.object(filePath);
+    if (entry) {
+        entry->timestamp = QDateTime::currentMSecsSinceEpoch();
+        return *entry;
+    }
+    return CacheEntry();
+}
 
-    return source.copy(x, y, qMin(w, source.width() - x), qMin(h, source.height() - y));
+void ImageCache::insert(const QString &filePath, const QPixmap &pixmap, int originalW, int originalH, bool downsampled) {
+    if (pixmap.isNull()) return;
+
+    QMutexLocker locker(&m_mutex);
+
+    // 计算 cost：pixmap 内存占用（近似）
+    int cost = pixmap.width() * pixmap.height() * pixmap.depth() / 8;
+
+    CacheEntry *entry = new CacheEntry();
+    entry->pixmap = pixmap;
+    entry->filePath = filePath;
+    entry->fileSize = QFileInfo(filePath).size();
+    entry->originalWidth = originalW;
+    entry->originalHeight = originalH;
+    entry->isDownsampled = downsampled;
+    entry->timestamp = QDateTime::currentMSecsSinceEpoch();
+
+    m_cache.insert(filePath, entry, cost);
+}
+
+void ImageCache::remove(const QString &filePath) {
+    QMutexLocker locker(&m_mutex);
+    m_cache.remove(filePath);
+}
+
+void ImageCache::clear() {
+    QMutexLocker locker(&m_mutex);
+    m_cache.clear();
+}
+
+int ImageCache::totalCost() const {
+    QMutexLocker locker(&m_mutex);
+    return m_cache.totalCost();
 }

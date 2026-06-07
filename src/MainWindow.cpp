@@ -777,8 +777,33 @@ void MainWindow::jumpToImage(int index) {
 void MainWindow::startImageLoading(const QString &filePath) {
     m_currentJobId = QUuid::createUuid().toString();
     m_currentImagePath = filePath;
+    m_isDownsampled = false;
+    m_originalImageWidth = 0;
+    m_originalImageHeight = 0;
 
     stopCurrentLoading();
+
+    // 检查内存缓存
+    if (ImageCache::instance().contains(filePath)) {
+        qDebug() << "Cache hit for:" << QFileInfo(filePath).fileName();
+        CacheEntry entry = ImageCache::instance().getEntry(filePath);
+        if (!entry.pixmap.isNull()) {
+            m_isDownsampled = entry.isDownsampled;
+            m_originalImageWidth = entry.originalWidth;
+            m_originalImageHeight = entry.originalHeight;
+            onImageLoaded(entry.pixmap, filePath, m_currentJobId);
+            // 异步收集信息
+            PerformanceSettings perf = m_settingsManager->performance();
+            m_imageLoader = new ImageLoader(filePath, perf, m_currentJobId);
+            m_loaderThread = new QThread(this);
+            m_imageLoader->moveToThread(m_loaderThread);
+            connect(m_loaderThread, &QThread::started, m_imageLoader, &ImageLoader::load);
+            connect(m_imageLoader, &ImageLoader::infoReady, this, &MainWindow::onInfoReady, Qt::QueuedConnection);
+            connect(m_loaderThread, &QThread::finished, m_loaderThread, &QObject::deleteLater);
+            m_loaderThread->start();
+            return;
+        }
+    }
 
     qInfo() << "Loading image:" << QFileInfo(filePath).fileName();
     m_graphicsScene->clear();
@@ -791,13 +816,27 @@ void MainWindow::startImageLoading(const QString &filePath) {
     m_loaderThread = new QThread(this);
     m_imageLoader->moveToThread(m_loaderThread);
 
-    connect(m_loaderThread, &QThread::started, m_imageLoader, &ImageLoader::load);
-    connect(m_imageLoader, &ImageLoader::finished, this, &MainWindow::onImageLoaded);
-    connect(m_imageLoader, &ImageLoader::infoReady, this, &MainWindow::onInfoReady);
-    connect(m_imageLoader, &ImageLoader::progress, this, &MainWindow::onProgress);
+    connect(m_loaderThread, &QThread::started, m_imageLoader, &ImageLoader::load, Qt::QueuedConnection);
+    connect(m_imageLoader, &ImageLoader::finished, this, &MainWindow::onImageLoaded, Qt::QueuedConnection);
+    connect(m_imageLoader, &ImageLoader::infoReady, this, &MainWindow::onInfoReady, Qt::QueuedConnection);
+    connect(m_imageLoader, &ImageLoader::progress, this, &MainWindow::onProgress, Qt::QueuedConnection);
+    connect(m_imageLoader, &ImageLoader::loadResultReady, this, &MainWindow::onLoadResultReady, Qt::QueuedConnection);
     connect(m_loaderThread, &QThread::finished, m_loaderThread, &QObject::deleteLater);
 
     m_loaderThread->start();
+}
+
+void MainWindow::onLoadResultReady(const LoadResult &result, const QString &jobId) {
+    if (jobId != m_currentJobId)
+        return;
+    if (!result.pixmap.isNull()) {
+        m_isDownsampled = result.isDownsampled;
+        m_originalImageWidth = result.originalWidth;
+        m_originalImageHeight = result.originalHeight;
+        // 写入缓存
+        ImageCache::instance().insert(result.info.fileInfo.value("Path", m_currentImagePath),
+                                      result.pixmap, result.originalWidth, result.originalHeight, result.isDownsampled);
+    }
 }
 
 void MainWindow::onImageLoaded(const QPixmap &pixmap, const QString &filePath, const QString &jobId) {
@@ -1287,9 +1326,12 @@ void MainWindow::mouseDoubleClickEvent(QMouseEvent *event) {
 }
 
 void MainWindow::stopCurrentLoading() {
+    // 先断开所有信号，防止 finished 信号触发 onImageLoaded 等槽函数
     if (m_imageLoader) {
+        m_imageLoader->disconnect();
         m_imageLoader->cancel();
     }
+
     if (m_loaderThread && m_loaderThread->isRunning()) {
         m_loaderThread->quit();
         if (!m_loaderThread->wait(2000)) {
@@ -1297,8 +1339,17 @@ void MainWindow::stopCurrentLoading() {
             m_loaderThread->wait();
         }
     }
-    m_loaderThread = nullptr;
-    m_imageLoader = nullptr;
+
+    // 清理对象。注意：finished 信号可能已连接 deleteLater，
+    // 所以这里只 delete 未启动过的对象，已启动的由 finished 信号处理
+    if (m_imageLoader) {
+        m_imageLoader->deleteLater();
+        m_imageLoader = nullptr;
+    }
+    if (m_loaderThread) {
+        m_loaderThread->deleteLater();
+        m_loaderThread = nullptr;
+    }
 }
 
 void MainWindow::resetCanvas() {

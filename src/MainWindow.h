@@ -187,4 +187,12 @@ private:
     int m_imageWidth;
     int m_imageHeight;
     qint64 m_fileSize;
+
+    // 降采样相关
+    bool m_isDownsampled = false;
+    int m_originalImageWidth = 0;
+    int m_originalImageHeight = 0;
+
+private slots:
+    void onLoadResultReady(const LoadResult &result, const QString &jobId);
 };
