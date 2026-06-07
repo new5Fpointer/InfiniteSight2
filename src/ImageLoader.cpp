@@ -267,12 +267,11 @@ void ImageLoader::loadVipsFull() {
 
         if (!buf || bufSize == 0) {
             qWarning() << "VipsFull write_to_buffer failed";
-            g_object_unref(vipsImage);
             loadStandard();
             return;
         }
 
-        g_object_unref(vipsImage);
+        // vips::VImage 会自动释放 vipsImage，不需要手动 g_object_unref
 
         QImage qimg;
         if (buf && bufSize > 0) {
