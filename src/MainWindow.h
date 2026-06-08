@@ -112,6 +112,7 @@ private:
     void updateCenterContainerPos();
     ResizeEdge getResizeEdge(const QPoint &pos) const;
     void updateCursorForResize(ResizeEdge edge);
+    void clearResizeCursor();
 
     SettingsManager *m_settingsManager;
 

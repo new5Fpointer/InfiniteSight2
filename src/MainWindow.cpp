@@ -191,6 +191,9 @@ MainWindow::MainWindow(QWidget *parent)
     m_graphicsView->setMouseTracking(true);
     m_graphicsView->viewport()->setMouseTracking(true);
     m_graphicsView->viewport()->installEventFilter(this);
+    m_titleBar->installEventFilter(this);
+    m_bottomBar->installEventFilter(this);
+    centralWidget()->installEventFilter(this);
 
     applySettings();
     updateMaximizeIcon();
@@ -300,6 +303,7 @@ void MainWindow::setupUi() {
 
     m_infoDock->setWidget(m_infoTree);
     addDockWidget(Qt::RightDockWidgetArea, m_infoDock);
+    m_infoDock->setVisible(false);
 
     m_splitter->addWidget(imageContainer);
     m_splitter->addWidget(m_infoDock);
@@ -551,26 +555,40 @@ MainWindow::ResizeEdge MainWindow::getResizeEdge(const QPoint &pos) const {
 
 void MainWindow::updateCursorForResize(ResizeEdge edge) {
     if (m_resizing) return;
+    Qt::CursorShape shape = Qt::ArrowCursor;
     switch (edge) {
     case ResizeEdge::Left:
     case ResizeEdge::Right:
-        setCursor(Qt::SizeHorCursor);
+        shape = Qt::SizeHorCursor;
         break;
     case ResizeEdge::Top:
     case ResizeEdge::Bottom:
-        setCursor(Qt::SizeVerCursor);
+        shape = Qt::SizeVerCursor;
         break;
     case ResizeEdge::TopLeft:
     case ResizeEdge::BottomRight:
-        setCursor(Qt::SizeFDiagCursor);
+        shape = Qt::SizeFDiagCursor;
         break;
     case ResizeEdge::TopRight:
     case ResizeEdge::BottomLeft:
-        setCursor(Qt::SizeBDiagCursor);
+        shape = Qt::SizeBDiagCursor;
         break;
     default:
-        setCursor(Qt::ArrowCursor);
+        shape = Qt::ArrowCursor;
         break;
+    }
+    if (QApplication::overrideCursor()) {
+        if (QApplication::overrideCursor()->shape() != shape) {
+            QApplication::changeOverrideCursor(QCursor(shape));
+        }
+    } else {
+        QApplication::setOverrideCursor(QCursor(shape));
+    }
+}
+
+void MainWindow::clearResizeCursor() {
+    if (QApplication::overrideCursor()) {
+        QApplication::restoreOverrideCursor();
     }
 }
 
@@ -1383,7 +1401,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 
             if (!m_dragging) {
                 ResizeEdge edge = getResizeEdge(localPos);
-                updateCursorForResize(edge);
+                if (edge != ResizeEdge::None) {
+                    updateCursorForResize(edge);
+                } else {
+                    clearResizeCursor();
+                }
             }
         } else if (event->type() == QEvent::MouseButtonPress) {
             QMouseEvent *me = static_cast<QMouseEvent *>(event);
@@ -1402,12 +1424,12 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             if (m_resizing) {
                 m_resizing = false;
                 m_resizeEdge = ResizeEdge::None;
-                setCursor(Qt::ArrowCursor);
+                clearResizeCursor();
                 return true;
             }
         } else if (event->type() == QEvent::Leave) {
             if (!m_resizing && !m_dragging) {
-                setCursor(Qt::ArrowCursor);
+                clearResizeCursor();
             }
         }
     }
@@ -1471,6 +1493,11 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
 void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_dragging = false;
+        if (m_resizing) {
+            m_resizing = false;
+            m_resizeEdge = ResizeEdge::None;
+            clearResizeCursor();
+        }
     }
     QMainWindow::mouseReleaseEvent(event);
 }
