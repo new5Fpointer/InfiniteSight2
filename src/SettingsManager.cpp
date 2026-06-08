@@ -47,6 +47,7 @@ void SettingsManager::clearRecentFiles() {
 
 void SettingsManager::save() {
     m_settings.setValue("general/defaultWindowState", m_general.defaultWindowState);
+    m_settings.setValue("general/windowGeometry", m_general.windowGeometry);
     m_settings.setValue("general/showInfoPanel", m_general.showInfoPanel);
     m_settings.setValue("general/recentFiles", m_general.recentFiles);
     m_settings.setValue("general/maxRecentFiles", m_general.maxRecentFiles);
@@ -66,6 +67,7 @@ void SettingsManager::save() {
 
 void SettingsManager::load() {
     m_general.defaultWindowState = m_settings.value("general/defaultWindowState", "normal").toString();
+    m_general.windowGeometry = m_settings.value("general/windowGeometry").toByteArray();
     m_general.showInfoPanel = m_settings.value("general/showInfoPanel", true).toBool();
     m_general.recentFiles = m_settings.value("general/recentFiles").toStringList();
     m_general.maxRecentFiles = m_settings.value("general/maxRecentFiles", 5).toInt();

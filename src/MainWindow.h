@@ -91,6 +91,9 @@ protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
+    enum class ResizeEdge { None, Left, Right, Top, Bottom, TopLeft, TopRight, BottomLeft, BottomRight };
+    static constexpr int kResizeMargin = 8;
+
     void setupUi();
     void createMenus();
     void createToolBar();
@@ -107,6 +110,8 @@ private:
     void updateTitleBarTitle();
     void updateBottomBarInfo();
     void updateCenterContainerPos();
+    ResizeEdge getResizeEdge(const QPoint &pos) const;
+    void updateCursorForResize(ResizeEdge edge);
 
     SettingsManager *m_settingsManager;
 
@@ -120,6 +125,8 @@ private:
     QPushButton *m_closeBtn;
     QPoint m_dragPos;
     bool m_dragging;
+    bool m_resizing = false;
+    ResizeEdge m_resizeEdge = ResizeEdge::None;
     QTimer *m_bottomBarTimer;
 
     QWidget *m_bottomBar;

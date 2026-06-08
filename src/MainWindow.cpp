@@ -162,7 +162,8 @@ MainWindow::MainWindow(QWidget *parent)
       m_scaleFactor(1.0), m_currentFolderIndex(-1), m_imageWidth(0), m_imageHeight(0), m_fileSize(0), m_dragging(false),
       m_isFileDialogOpen(false) {
     setWindowTitle("InfiniteSight");
-    setGeometry(100, 100, 1400, 900);
+    resize(1200, 800);
+    setMinimumSize(800, 600);
     setAcceptDrops(true);
 
     setWindowFlags(Qt::FramelessWindowHint);
@@ -173,6 +174,15 @@ MainWindow::MainWindow(QWidget *parent)
     createToolBar();
     createTitleBar();
     createBottomBar();
+
+    // 安装全局事件过滤器以支持无边框窗口边缘调整大小
+    setMouseTracking(true);
+    if (centralWidget())
+        centralWidget()->setMouseTracking(true);
+    if (m_titleBar)
+        m_titleBar->setMouseTracking(true);
+    if (m_bottomBar)
+        m_bottomBar->setMouseTracking(true);
 
     m_bottomBarTimer = new QTimer(this);
     m_bottomBarTimer->setSingleShot(true);
@@ -513,6 +523,54 @@ void MainWindow::updateCenterContainerPos() {
         int x = (m_bottomBar->width() - m_centerContainer->width()) / 2;
         int y = (m_bottomBar->height() - m_centerContainer->height()) / 2;
         m_centerContainer->move(x, y);
+    }
+}
+
+MainWindow::ResizeEdge MainWindow::getResizeEdge(const QPoint &pos) const {
+    int x = pos.x();
+    int y = pos.y();
+    int w = width();
+    int h = height();
+    int m = kResizeMargin;
+
+    bool left = x <= m;
+    bool right = x >= w - m;
+    bool top = y <= m;
+    bool bottom = y >= h - m;
+
+    if (top && left) return ResizeEdge::TopLeft;
+    if (top && right) return ResizeEdge::TopRight;
+    if (bottom && left) return ResizeEdge::BottomLeft;
+    if (bottom && right) return ResizeEdge::BottomRight;
+    if (left) return ResizeEdge::Left;
+    if (right) return ResizeEdge::Right;
+    if (top) return ResizeEdge::Top;
+    if (bottom) return ResizeEdge::Bottom;
+    return ResizeEdge::None;
+}
+
+void MainWindow::updateCursorForResize(ResizeEdge edge) {
+    if (m_resizing) return;
+    switch (edge) {
+    case ResizeEdge::Left:
+    case ResizeEdge::Right:
+        setCursor(Qt::SizeHorCursor);
+        break;
+    case ResizeEdge::Top:
+    case ResizeEdge::Bottom:
+        setCursor(Qt::SizeVerCursor);
+        break;
+    case ResizeEdge::TopLeft:
+    case ResizeEdge::BottomRight:
+        setCursor(Qt::SizeFDiagCursor);
+        break;
+    case ResizeEdge::TopRight:
+    case ResizeEdge::BottomLeft:
+        setCursor(Qt::SizeBDiagCursor);
+        break;
+    default:
+        setCursor(Qt::ArrowCursor);
+        break;
     }
 }
 
@@ -924,7 +982,10 @@ void MainWindow::applySettings() {
     PerformanceSettings p = m_settingsManager->performance();
     AppearanceSettings a = m_settingsManager->appearance();
 
-    if (g.defaultWindowState == "maximized") {
+    // 恢复窗口几何状态
+    if (!g.windowGeometry.isEmpty()) {
+        restoreGeometry(g.windowGeometry);
+    } else if (g.defaultWindowState == "maximized") {
         showMaximized();
     } else if (g.defaultWindowState == "fullscreen") {
         showFullScreen();
@@ -1259,6 +1320,98 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             return true;
         }
     }
+
+    // 无边框窗口边缘调整大小
+    if (!isFullScreen()) {
+        if (event->type() == QEvent::MouseMove) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            QPoint globalPos = me->globalPosition().toPoint();
+            QPoint localPos = mapFromGlobal(globalPos);
+
+            if (m_resizing && (me->buttons() & Qt::LeftButton)) {
+                QPoint delta = globalPos - m_dragPos;
+                m_dragPos = globalPos;
+
+                QRect geo = geometry();
+                QSize minSz = minimumSize();
+                int newW = geo.width();
+                int newH = geo.height();
+                int newX = geo.x();
+                int newY = geo.y();
+
+                switch (m_resizeEdge) {
+                case ResizeEdge::Right:
+                    newW = qMax(minSz.width(), geo.width() + delta.x());
+                    break;
+                case ResizeEdge::Left:
+                    newW = qMax(minSz.width(), geo.width() - delta.x());
+                    if (newW > minSz.width()) newX = geo.x() + delta.x();
+                    break;
+                case ResizeEdge::Bottom:
+                    newH = qMax(minSz.height(), geo.height() + delta.y());
+                    break;
+                case ResizeEdge::Top:
+                    newH = qMax(minSz.height(), geo.height() - delta.y());
+                    if (newH > minSz.height()) newY = geo.y() + delta.y();
+                    break;
+                case ResizeEdge::TopLeft:
+                    newW = qMax(minSz.width(), geo.width() - delta.x());
+                    newH = qMax(minSz.height(), geo.height() - delta.y());
+                    if (newW > minSz.width()) newX = geo.x() + delta.x();
+                    if (newH > minSz.height()) newY = geo.y() + delta.y();
+                    break;
+                case ResizeEdge::TopRight:
+                    newW = qMax(minSz.width(), geo.width() + delta.x());
+                    newH = qMax(minSz.height(), geo.height() - delta.y());
+                    if (newH > minSz.height()) newY = geo.y() + delta.y();
+                    break;
+                case ResizeEdge::BottomLeft:
+                    newW = qMax(minSz.width(), geo.width() - delta.x());
+                    newH = qMax(minSz.height(), geo.height() + delta.y());
+                    if (newW > minSz.width()) newX = geo.x() + delta.x();
+                    break;
+                case ResizeEdge::BottomRight:
+                    newW = qMax(minSz.width(), geo.width() + delta.x());
+                    newH = qMax(minSz.height(), geo.height() + delta.y());
+                    break;
+                default:
+                    break;
+                }
+                setGeometry(newX, newY, newW, newH);
+                return true;
+            }
+
+            if (!m_dragging) {
+                ResizeEdge edge = getResizeEdge(localPos);
+                updateCursorForResize(edge);
+            }
+        } else if (event->type() == QEvent::MouseButtonPress) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            if (me->button() == Qt::LeftButton) {
+                QPoint globalPos = me->globalPosition().toPoint();
+                QPoint localPos = mapFromGlobal(globalPos);
+                ResizeEdge edge = getResizeEdge(localPos);
+                if (edge != ResizeEdge::None) {
+                    m_resizing = true;
+                    m_resizeEdge = edge;
+                    m_dragPos = globalPos;
+                    return true;
+                }
+            }
+        } else if (event->type() == QEvent::MouseButtonRelease) {
+            if (m_resizing) {
+                m_resizing = false;
+                m_resizeEdge = ResizeEdge::None;
+                setCursor(Qt::ArrowCursor);
+                return true;
+            }
+        } else if (event->type() == QEvent::Leave) {
+            if (!m_resizing && !m_dragging) {
+                setCursor(Qt::ArrowCursor);
+            }
+        }
+    }
+
     if (event->type() == QEvent::MouseMove && isFullScreen() && m_bottomBar) {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
         QPoint localPos = mapFromGlobal(me->globalPosition().toPoint());
@@ -1441,6 +1594,13 @@ void MainWindow::dropEvent(QDropEvent *event) {
 
 void MainWindow::closeEvent(QCloseEvent *event) {
     stopCurrentLoading();
+
+    // 保存窗口几何状态
+    GeneralSettings g = m_settingsManager->general();
+    g.windowGeometry = saveGeometry();
+    m_settingsManager->setGeneral(g);
+    m_settingsManager->save();
+
     event->accept();
 }
 

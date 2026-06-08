@@ -8,6 +8,7 @@
 
 struct GeneralSettings {
     QString defaultWindowState = "normal";
+    QByteArray windowGeometry;
     bool showInfoPanel = true;
     QStringList recentFiles;
     int maxRecentFiles = 5;
