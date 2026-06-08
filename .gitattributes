@@ -1,0 +1,13 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Shell scripts must use LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Force LF for certain files
+.gitattributes text eol=lf
+.gitignore text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.json text eol=lf
