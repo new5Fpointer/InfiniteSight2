@@ -16,6 +16,11 @@ int main(int argc, char *argv[]) {
     }
     qInfo() << "libvips initialized successfully";
 
+    // 调整 vips 操作缓存，减少内存占用
+    vips_cache_set_max_mem(500 * 1024 * 1024);  // 500MB
+    vips_cache_set_max(100);                     // 最多缓存 100 个操作
+    vips_cache_set_max_files(10);               // 最多打开 10 个文件
+
     // 如果传入了测试图片路径，进行测试加载
     if (argc > 1) {
         QString testPath = QString::fromLocal8Bit(argv[1]);
