@@ -13,8 +13,7 @@
         "CMAKE_CXX_FLAGS": "-DQT_QML_DEBUG"
       },
       "environment": {
-        "QML_DEBUG_ARGS": "-qmljsdebugger=file:{795b9461-8f94-44c1-b5f2-2a581379c2e2},block",
-        "VIPS_ROOT": "${sourceDir}/bin/vips-msvc/debug"
+        "QML_DEBUG_ARGS": "-qmljsdebugger=file:{795b9461-8f94-44c1-b5f2-2a581379c2e2},block"
       }
     },
     {
