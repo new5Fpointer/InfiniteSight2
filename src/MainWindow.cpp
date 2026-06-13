@@ -523,10 +523,45 @@ void MainWindow::createBottomBar() {
 }
 
 void MainWindow::updateCenterContainerPos() {
-    if (m_bottomBar && m_centerContainer) {
-        int x = (m_bottomBar->width() - m_centerContainer->width()) / 2;
-        int y = (m_bottomBar->height() - m_centerContainer->height()) / 2;
-        m_centerContainer->move(x, y);
+    if (!m_bottomBar || !m_centerContainer)
+        return;
+
+    int x = (m_bottomBar->width() - m_centerContainer->width()) / 2;
+    int y = (m_bottomBar->height() - m_centerContainer->height()) / 2;
+    m_centerContainer->move(x, y);
+
+    if (!m_infoContainer)
+        return;
+
+    // m_infoContainer 在 bottomLayout 最左侧，其左边界等于 layout 左内边距
+    int infoLeft = m_bottomBar->layout()->contentsMargins().left();
+    int spacing = qobject_cast<QHBoxLayout *>(m_infoContainer->layout())->spacing();
+    const int margin = 3;
+
+    int sizeW = m_fileSizeLabel->width();
+    int dimW = m_fileDimensionLabel->width();
+    int fmtW = m_fileFormatLabel->width();
+
+    int widthFull = sizeW + spacing + dimW + spacing + fmtW;
+    int widthNoFmt = sizeW + spacing + dimW;
+    int widthNoFmtDim = sizeW;
+
+    if (infoLeft + widthFull + margin <= x) {
+        m_fileSizeLabel->setVisible(true);
+        m_fileDimensionLabel->setVisible(true);
+        m_fileFormatLabel->setVisible(true);
+    } else if (infoLeft + widthNoFmt + margin <= x) {
+        m_fileSizeLabel->setVisible(true);
+        m_fileDimensionLabel->setVisible(true);
+        m_fileFormatLabel->setVisible(false);
+    } else if (infoLeft + widthNoFmtDim + margin <= x) {
+        m_fileSizeLabel->setVisible(true);
+        m_fileDimensionLabel->setVisible(false);
+        m_fileFormatLabel->setVisible(false);
+    } else {
+        m_fileSizeLabel->setVisible(false);
+        m_fileDimensionLabel->setVisible(false);
+        m_fileFormatLabel->setVisible(false);
     }
 }
 
@@ -542,19 +577,28 @@ MainWindow::ResizeEdge MainWindow::getResizeEdge(const QPoint &pos) const {
     bool top = y <= m;
     bool bottom = y >= h - m;
 
-    if (top && left) return ResizeEdge::TopLeft;
-    if (top && right) return ResizeEdge::TopRight;
-    if (bottom && left) return ResizeEdge::BottomLeft;
-    if (bottom && right) return ResizeEdge::BottomRight;
-    if (left) return ResizeEdge::Left;
-    if (right) return ResizeEdge::Right;
-    if (top) return ResizeEdge::Top;
-    if (bottom) return ResizeEdge::Bottom;
+    if (top && left)
+        return ResizeEdge::TopLeft;
+    if (top && right)
+        return ResizeEdge::TopRight;
+    if (bottom && left)
+        return ResizeEdge::BottomLeft;
+    if (bottom && right)
+        return ResizeEdge::BottomRight;
+    if (left)
+        return ResizeEdge::Left;
+    if (right)
+        return ResizeEdge::Right;
+    if (top)
+        return ResizeEdge::Top;
+    if (bottom)
+        return ResizeEdge::Bottom;
     return ResizeEdge::None;
 }
 
 void MainWindow::updateCursorForResize(ResizeEdge edge) {
-    if (m_resizing) return;
+    if (m_resizing)
+        return;
     Qt::CursorShape shape = Qt::ArrowCursor;
     switch (edge) {
     case ResizeEdge::Left:
@@ -1363,30 +1407,36 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
                     break;
                 case ResizeEdge::Left:
                     newW = qMax(minSz.width(), geo.width() - delta.x());
-                    if (newW > minSz.width()) newX = geo.x() + delta.x();
+                    if (newW > minSz.width())
+                        newX = geo.x() + delta.x();
                     break;
                 case ResizeEdge::Bottom:
                     newH = qMax(minSz.height(), geo.height() + delta.y());
                     break;
                 case ResizeEdge::Top:
                     newH = qMax(minSz.height(), geo.height() - delta.y());
-                    if (newH > minSz.height()) newY = geo.y() + delta.y();
+                    if (newH > minSz.height())
+                        newY = geo.y() + delta.y();
                     break;
                 case ResizeEdge::TopLeft:
                     newW = qMax(minSz.width(), geo.width() - delta.x());
                     newH = qMax(minSz.height(), geo.height() - delta.y());
-                    if (newW > minSz.width()) newX = geo.x() + delta.x();
-                    if (newH > minSz.height()) newY = geo.y() + delta.y();
+                    if (newW > minSz.width())
+                        newX = geo.x() + delta.x();
+                    if (newH > minSz.height())
+                        newY = geo.y() + delta.y();
                     break;
                 case ResizeEdge::TopRight:
                     newW = qMax(minSz.width(), geo.width() + delta.x());
                     newH = qMax(minSz.height(), geo.height() - delta.y());
-                    if (newH > minSz.height()) newY = geo.y() + delta.y();
+                    if (newH > minSz.height())
+                        newY = geo.y() + delta.y();
                     break;
                 case ResizeEdge::BottomLeft:
                     newW = qMax(minSz.width(), geo.width() - delta.x());
                     newH = qMax(minSz.height(), geo.height() + delta.y());
-                    if (newW > minSz.width()) newX = geo.x() + delta.x();
+                    if (newW > minSz.width())
+                        newX = geo.x() + delta.x();
                     break;
                 case ResizeEdge::BottomRight:
                     newW = qMax(minSz.width(), geo.width() + delta.x());
