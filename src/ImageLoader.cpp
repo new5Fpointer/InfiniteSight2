@@ -101,7 +101,6 @@ void ImageLoader::loadVipsFull() {
     emit progress(10);
 
     try {
-        // Windows 下 vips 需要正斜杠路径
         QString normalizedPath = m_filePath;
         normalizedPath.replace('\\', '/');
 
