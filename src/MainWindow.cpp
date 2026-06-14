@@ -1139,8 +1139,7 @@ void MainWindow::applyStyleSheet() {
                         "#bottomBtn:hover { background-color: %16; }"
                         "#infoBlock { background-color: %18; color: %15; font-size: 11px; border-radius: 4px; padding: 2px 8px; }"
                         "QGraphicsView { background-color: %19; border: none; }")
-                        .arg(bg, text, a.uiFont)
-                        .arg(a.uiFontSize)
+                        .arg(bg, text, a.uiFont, QString::number(a.uiFontSize))
                         .arg(titleBarBg, menuText, border, selected, accent, progressBg, scrollBg, scrollHandle, scrollHandleHover)
                         .arg(titleBarBg, titleBarText, btnHover, closeHover, bottomBarBg, viewBg)
                         .arg(bottomBarBgFullscreen)
