@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QTabWidget>
 #include <QComboBox>
+#include <QFontComboBox>
 #include <QCheckBox>
 #include <QSpinBox>
 #include <QFormLayout>
@@ -52,7 +53,7 @@ private:
     QCheckBox *m_skipExifCheck;
     QSpinBox *m_cacheSizeSpin;
 
-    QComboBox *m_fontCombo;
+    QFontComboBox *m_fontCombo;
     QSpinBox *m_fontSizeSpin;
     QComboBox *m_themeCombo;
     QLabel *m_previewLabel;

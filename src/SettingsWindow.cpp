@@ -1,13 +1,11 @@
 #include "SettingsWindow.h"
-#include <QVBoxLayout>
+#include <QFontComboBox>
 #include <QHBoxLayout>
-#include <QFontDatabase>
 #include <QPushButton>
+#include <QVBoxLayout>
 
 SettingsWindow::SettingsWindow(SettingsManager *manager, QWidget *parent)
-    : QDialog(parent)
-    , m_manager(manager)
-{
+    : QDialog(parent), m_manager(manager) {
     setWindowTitle(tr("Application Settings"));
     setMinimumSize(700, 500);
 
@@ -123,8 +121,7 @@ void SettingsWindow::setupAppearanceTab() {
     QGroupBox *fontGroup = new QGroupBox(tr("Font"), m_appearanceTab);
     QFormLayout *fontLayout = new QFormLayout(fontGroup);
 
-    m_fontCombo = new QComboBox(fontGroup);
-    m_fontCombo->addItems(QFontDatabase::families());
+    m_fontCombo = new QFontComboBox(fontGroup);
     fontLayout->addRow(tr("UI Font:"), m_fontCombo);
 
     m_fontSizeSpin = new QSpinBox(fontGroup);
