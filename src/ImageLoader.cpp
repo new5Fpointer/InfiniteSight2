@@ -2,6 +2,7 @@
 #include <vips/vips8>
 #endif
 
+#include "ExifParser.h"
 #include "ImageLoader.h"
 #include "SettingsManager.h"
 #include <QDateTime>
@@ -261,6 +262,13 @@ ImageInfo ImageLoader::collectImageInfo() {
         info.imageInfo["DPI"] = QString("N/A");
     }
 
+    // 解析EXIF数据
+    ExifParser::ExifData exif = ExifParser::parse(m_filePath);
+    auto displayMap = exif.toDisplayMap();
+    for (auto it = displayMap.begin(); it != displayMap.end(); ++it) {
+        info.exifInfo[it.key()] = it.value();
+    }
+
     return info;
 }
 
@@ -319,6 +327,13 @@ ImageInfo ImageLoader::collectVipsImageInfo() {
                                            .arg(reader.size().height());
     }
 #endif
+
+    // 解析EXIF数据
+    ExifParser::ExifData exif = ExifParser::parse(m_filePath);
+    auto displayMap = exif.toDisplayMap();
+    for (auto it = displayMap.begin(); it != displayMap.end(); ++it) {
+        info.exifInfo[it.key()] = it.value();
+    }
 
     return info;
 }

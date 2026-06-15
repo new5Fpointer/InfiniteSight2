@@ -1025,8 +1025,19 @@ void MainWindow::onInfoReady(const ImageInfo &info, const QString &jobId) {
         root->setExpanded(true);
     };
 
+    auto addSectionVariant = [this](const QString &title, const QMap<QString, QVariant> &data) {
+        if (data.isEmpty())
+            return;
+        QTreeWidgetItem *root = new QTreeWidgetItem(m_infoTree, {title});
+        for (auto it = data.begin(); it != data.end(); ++it) {
+            new QTreeWidgetItem(root, {QString("%1: %2").arg(it.key(), it.value().toString())});
+        }
+        root->setExpanded(true);
+    };
+
     addSection(tr("File Information"), info.fileInfo);
     addSection(tr("Image Information"), info.imageInfo);
+    addSectionVariant(tr("EXIF Information"), info.exifInfo);
 
     if (!info.error.isEmpty()) {
         QTreeWidgetItem *errRoot = new QTreeWidgetItem(m_infoTree, {"Error"});

@@ -23,6 +23,7 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageLoader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageCache.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ExifParser.cpp
 )
 
 set(HEADERS
@@ -32,6 +33,7 @@ set(HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageLoader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageCache.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ExifParser.h
 )
 
 set(RESOURCES
@@ -53,6 +55,17 @@ if(VIPS_FOUND)
     target_compile_definitions(${PROJECT_NAME} PRIVATE ${VIPS_DEFINITIONS})
     message(STATUS "libvips found: ${VIPS_VERSION}")
 
+    # Link libexif for ExifParser
+    find_library(LIBEXIF NAMES exif libexif HINTS "${VIPS_ROOT}/lib" "$ENV{VIPS_ROOT}/lib" ENV VCPKG_ROOT/installed/x64-windows/lib)
+    if(LIBEXIF)
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBEXIF})
+        get_filename_component(LIBEXIF_DIR "${LIBEXIF}" DIRECTORY)
+        get_filename_component(LIBEXIF_ROOT "${LIBEXIF_DIR}" DIRECTORY)
+        target_include_directories(${PROJECT_NAME} PRIVATE "${LIBEXIF_ROOT}/include")
+    else()
+        message(WARNING "libexif not found. EXIF parsing will fail.")
+    endif()
+
     # Auto-copy vips DLLs to output directory on Windows
     if(WIN32)
         foreach(_lib IN LISTS VIPS_LIBRARIES)
@@ -61,7 +74,7 @@ if(VIPS_FOUND)
                 file(GLOB _vips_dlls "${_lib_dir}/../bin/*.dll")
                 foreach(_dll IN LISTS _vips_dlls)
                     get_filename_component(_dll_name "${_dll}" NAME)
-                    if(_dll_name MATCHES "vips|glib|gobject|gmodule|gio|gthread|intl|iconv|pcre|ffi|z|jpeg|png|tiff|webp|expat|harfbuzz|freetype|fontconfig|cairo|pixman|rsvg|xml|lzma|bz2|sqlite|crypto|ssl|curl|nghttp|brotli")
+                    if(_dll_name MATCHES "vips|glib|gobject|gmodule|gio|gthread|intl|iconv|pcre|ffi|z|jpeg|png|tiff|webp|expat|harfbuzz|freetype|fontconfig|cairo|pixman|rsvg|xml|lzma|bz2|sqlite|crypto|ssl|curl|nghttp|brotli|exif")
                         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                             "${_dll}"

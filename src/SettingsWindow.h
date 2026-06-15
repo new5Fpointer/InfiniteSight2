@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QDialog>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QDialogButtonBox>
@@ -28,4 +29,6 @@ private:
 
     SettingsManager *m_manager;
     QComboBox *m_themeCombo;
+    QCheckBox *m_showInfoPanelCheck;
+    QCheckBox *m_skipExifCheck;
 };
