@@ -74,7 +74,7 @@ if(VIPS_FOUND)
                 file(GLOB _vips_dlls "${_lib_dir}/../bin/*.dll")
                 foreach(_dll IN LISTS _vips_dlls)
                     get_filename_component(_dll_name "${_dll}" NAME)
-                    if(_dll_name MATCHES "vips|glib|gobject|gmodule|gio|gthread|intl|iconv|pcre|ffi|z|jpeg|png|tiff|webp|expat|harfbuzz|freetype|fontconfig|cairo|pixman|rsvg|xml|lzma|bz2|sqlite|crypto|ssl|curl|nghttp|brotli|exif")
+                    if(_dll_name MATCHES "vips|glib|gobject|gmodule|gio|gthread|intl|iconv|pcre|ffi|z|jpeg|png|tiff|webp|expat|harfbuzz|freetype|fontconfig|cairo|pixman|rsvg|xml|lzma|bz2|sqlite|crypto|ssl|curl|nghttp|brotli|exif|charset|croco|fftw|fribidi|gdk_pixbuf|girepository|lcms|sharpyuv|pango|pthread")
                         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                             "${_dll}"

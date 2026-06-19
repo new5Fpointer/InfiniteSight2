@@ -17,54 +17,63 @@ find_path(VIPS_C_INCLUDE_DIR
     vips/vips.h
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES include
+    NO_DEFAULT_PATH
 )
 
 find_path(VIPS_CXX_INCLUDE_DIR
     vips/vips8
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES include
+    NO_DEFAULT_PATH
 )
 
 find_library(VIPS_C_LIBRARY
     NAMES vips libvips
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES lib
+    NO_DEFAULT_PATH
 )
 
 find_library(VIPS_CXX_LIBRARY
     NAMES vips-cpp libvips-cpp
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES lib
+    NO_DEFAULT_PATH
 )
 
 find_path(VIPS_GLIB_INCLUDE_DIR
     glib-object.h
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES include/glib-2.0
+    NO_DEFAULT_PATH
 )
 
 find_path(VIPS_GLIB_CONFIG_INCLUDE_DIR
     glibconfig.h
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES lib/glib-2.0/include
+    NO_DEFAULT_PATH
 )
 
 find_library(VIPS_GLIB_LIBRARY
     NAMES glib-2.0
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES lib
+    NO_DEFAULT_PATH
 )
 
 find_library(VIPS_GOBJECT_LIBRARY
     NAMES gobject-2.0
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES lib
+    NO_DEFAULT_PATH
 )
 
 find_library(VIPS_GMODULE_LIBRARY
     NAMES gmodule-2.0
     HINTS ${_VIPS_ROOT_HINTS}
     PATH_SUFFIXES lib
+    NO_DEFAULT_PATH
 )
 
 set(VIPS_REQUIRED_INCLUDES

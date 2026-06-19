@@ -10,7 +10,8 @@
       "binaryDir": "${sourceDir}/out/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_FLAGS": "-DQT_QML_DEBUG"
+        "CMAKE_CXX_FLAGS": "-DQT_QML_DEBUG",
+        "VIPS_ROOT": "${sourceDir}/bin/vips/debug"
       },
       "environment": {
         "QML_DEBUG_ARGS": "-qmljsdebugger=file:{795b9461-8f94-44c1-b5f2-2a581379c2e2},block"
@@ -24,7 +25,8 @@
       ],
       "binaryDir": "${sourceDir}/out/build/release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "VIPS_ROOT": "${sourceDir}/bin/vips/release"
       }
     },
     {
