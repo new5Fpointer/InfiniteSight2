@@ -259,7 +259,6 @@ ImageInfo ImageLoader::collectImageInfo() {
         info.imageInfo["Dimensions"] = QString("%1 x %2 pixels")
                                            .arg(reader.size().width())
                                            .arg(reader.size().height());
-        info.imageInfo["DPI"] = QString("N/A");
     }
 
     // 解析EXIF数据

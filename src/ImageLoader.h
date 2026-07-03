@@ -1,10 +1,10 @@
 #pragma once
 
+#include "SettingsManager.h"
 #include <QMap>
 #include <QObject>
 #include <QPixmap>
 #include <QVariant>
-#include "SettingsManager.h"
 
 struct ImageInfo {
     QMap<QString, QString> fileInfo;
