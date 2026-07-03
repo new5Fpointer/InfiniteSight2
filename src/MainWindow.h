@@ -88,10 +88,19 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void changeEvent(QEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
-    enum class ResizeEdge { None, Left, Right, Top, Bottom, TopLeft, TopRight, BottomLeft, BottomRight };
+    enum class ResizeEdge { None,
+                            Left,
+                            Right,
+                            Top,
+                            Bottom,
+                            TopLeft,
+                            TopRight,
+                            BottomLeft,
+                            BottomRight };
     static constexpr int kResizeMargin = 8;
 
     void setupUi();

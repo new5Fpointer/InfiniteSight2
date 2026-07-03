@@ -645,6 +645,20 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
     updateCenterContainerPos();
 }
 
+void MainWindow::changeEvent(QEvent *event) {
+    if (event->type() == QEvent::WindowStateChange) {
+        if (isMaximized() || isFullScreen()) {
+            if (m_resizing) {
+                m_resizing = false;
+                m_resizeEdge = ResizeEdge::None;
+            }
+            clearResizeCursor();
+        }
+        updateMaximizeIcon();
+    }
+    QMainWindow::changeEvent(event);
+}
+
 void MainWindow::createMenus() {
     QMenuBar *menuBar = new QMenuBar(this);
     menuBar->setVisible(false);
@@ -1393,8 +1407,8 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
         }
     }
 
-    // 无边框窗口边缘调整大小
-    if (!isFullScreen()) {
+    // 无边框窗口边缘调整大小（最大化/全屏时禁用）
+    if (!isFullScreen() && !isMaximized()) {
         if (event->type() == QEvent::MouseMove) {
             QMouseEvent *me = static_cast<QMouseEvent *>(event);
             QPoint globalPos = me->globalPosition().toPoint();
