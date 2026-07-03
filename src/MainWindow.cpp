@@ -1531,6 +1531,10 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 void MainWindow::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         if (m_titleBar && m_titleBar->geometry().contains(event->pos())) {
+            if (isMaximized()) {
+                showNormal();
+                updateMaximizeIcon();
+            }
             m_dragging = true;
             m_dragPos = event->globalPosition().toPoint() - frameGeometry().topLeft();
             event->accept();
@@ -1542,6 +1546,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event) {
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event) {
     if (m_dragging && (event->buttons() & Qt::LeftButton)) {
+        if (isMaximized()) {
+            showNormal();
+            updateMaximizeIcon();
+        }
         move(event->globalPosition().toPoint() - m_dragPos);
         event->accept();
         return;
