@@ -240,17 +240,18 @@ void MainWindow::setupUi() {
     connect(m_menuBtn, &QPushButton::clicked, this, &MainWindow::showMenu);
     titleLayout->addWidget(m_menuBtn);
 
-    m_pinBtn = createTitleBtn("pin");
+    m_pinBtn = createTitleBtn("pin", "pinBtn");
+    m_pinBtn->setCheckable(true);
     connect(m_pinBtn, &QPushButton::clicked, this, [this]() {
         Qt::WindowFlags flags = windowFlags();
         if (flags & Qt::WindowStaysOnTopHint) {
             setWindowFlags(flags & ~Qt::WindowStaysOnTopHint);
             m_pinBtn->setIcon(themedIcon("pin"));
-            m_pinBtn->setStyleSheet("");
+            m_pinBtn->setChecked(false);
         } else {
             setWindowFlags(flags | Qt::WindowStaysOnTopHint);
             m_pinBtn->setIcon(themedIcon("pin-off"));
-            m_pinBtn->setStyleSheet("background-color: #3F3F46;");
+            m_pinBtn->setChecked(true);
         }
         show();
     });
@@ -1119,6 +1120,7 @@ void MainWindow::applyStyleSheet() {
     QString closeHover = "#E81123";
     QString viewBg = theme == "dark" ? "#1E1E1E" : "#FFFFFF";
     QString pageLabelBorder = theme == "dark" ? "#555555" : "#CCCCCC";
+    QString pinActiveBg = theme == "dark" ? "#3F3F46" : "#E0E0E0";
 
     QString style = QString(
                         "QMainWindow, QDockWidget, QTreeWidget, QScrollArea, QWidget {"
@@ -1151,6 +1153,8 @@ void MainWindow::applyStyleSheet() {
                         "#titleLabel { color: %15; font-size: 13px; padding-left: 6px; }"
                         "#titleBtn { background-color: transparent; border: none; border-radius: 0px; }"
                         "#titleBtn:hover { background-color: %16; }"
+                        "#pinBtn { background-color: transparent; border: none; border-radius: 0px; }"
+                        "#pinBtn:checked { background-color: %28; }"
                         "#closeBtn { background-color: transparent; border: none; border-radius: 0px; }"
                         "#closeBtn:hover { background-color: %17; }"
                         "#bottomBar { background-color: %18; border-top: 1px solid %7; }"
@@ -1169,7 +1173,8 @@ void MainWindow::applyStyleSheet() {
                         .arg(titleBarBg, titleBarText, btnHover, closeHover, bottomBarBg, viewBg)
                         .arg(bottomBarBgFullscreen)
                         .arg(pageLabelBorder)
-                        .arg(menuBg, menuBorder, menuHoverBg, menuHoverText, menuSep, menuDisabled);
+                        .arg(menuBg, menuBorder, menuHoverBg, menuHoverText, menuSep, menuDisabled)
+                        .arg(pinActiveBg);
 
     setStyleSheet(style);
 
@@ -1205,10 +1210,9 @@ void MainWindow::refreshToolBarIcons() {
         m_menuBtn->setIcon(themedIcon("menu"));
     if (m_pinBtn) {
         Qt::WindowFlags flags = windowFlags();
-        if (flags & Qt::WindowStaysOnTopHint)
-            m_pinBtn->setIcon(themedIcon("pin-off"));
-        else
-            m_pinBtn->setIcon(themedIcon("pin"));
+        bool pinned = flags & Qt::WindowStaysOnTopHint;
+        m_pinBtn->setIcon(themedIcon(pinned ? "pin-off" : "pin"));
+        m_pinBtn->setChecked(pinned);
     }
     if (m_minBtn)
         m_minBtn->setIcon(themedIcon("minimize"));
