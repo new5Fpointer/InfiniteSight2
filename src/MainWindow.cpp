@@ -172,7 +172,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupUi();
     createMenus();
-    createToolBar();
     createTitleBar();
     createBottomBar();
 
@@ -696,53 +695,6 @@ void MainWindow::createMenus() {
     setMenuBar(menuBar);
 }
 
-void MainWindow::createToolBar() {
-    m_zoomInAction = new QAction(themedIcon("zoom-in"), "", this);
-    m_zoomInAction->setToolTip(tr("Zoom In") + " (Ctrl++)");
-    m_zoomInAction->setShortcut(QKeySequence("Ctrl++"));
-    connect(m_zoomInAction, &QAction::triggered, this, &MainWindow::zoomIn);
-
-    m_zoomOutAction = new QAction(themedIcon("zoom-out"), "", this);
-    m_zoomOutAction->setToolTip(tr("Zoom Out") + " (Ctrl+-)");
-    m_zoomOutAction->setShortcut(QKeySequence("Ctrl+-"));
-    connect(m_zoomOutAction, &QAction::triggered, this, &MainWindow::zoomOut);
-
-    m_actualSizeAction = new QAction(themedIcon("actual-size"), "", this);
-    m_actualSizeAction->setToolTip(tr("Actual Size") + " (Ctrl+0)");
-    m_actualSizeAction->setShortcut(QKeySequence("Ctrl+0"));
-    connect(m_actualSizeAction, &QAction::triggered, this, &MainWindow::actualSize);
-
-    m_fitWindowAction = new QAction(themedIcon("fit-screen"), "", this);
-    m_fitWindowAction->setToolTip(tr("Fit to Window") + " (Ctrl+1)");
-    m_fitWindowAction->setShortcut(QKeySequence("Ctrl+1"));
-    connect(m_fitWindowAction, &QAction::triggered, this, &MainWindow::fitToWindow);
-
-    m_rotateLeftAction = new QAction(themedIcon("rotate-left"), "", this);
-    m_rotateLeftAction->setToolTip(tr("Rotate left") + " (Ctrl+L)");
-    m_rotateLeftAction->setShortcut(QKeySequence("Ctrl+L"));
-    connect(m_rotateLeftAction, &QAction::triggered, this, [this]() { rotateImage(-90); });
-
-    m_rotateRightAction = new QAction(themedIcon("rotate-right"), "", this);
-    m_rotateRightAction->setToolTip(tr("Rotate right") + " (Ctrl+R)");
-    m_rotateRightAction->setShortcut(QKeySequence("Ctrl+R"));
-    connect(m_rotateRightAction, &QAction::triggered, this, [this]() { rotateImage(90); });
-
-    m_mirrorAction = new QAction(themedIcon("mirror-horizontal"), "", this);
-    m_mirrorAction->setToolTip(tr("Mirror Horizontal") + " (Ctrl+M)");
-    m_mirrorAction->setShortcut(QKeySequence("Ctrl+M"));
-    connect(m_mirrorAction, &QAction::triggered, this, &MainWindow::mirrorImage);
-
-    m_prevImageAction = new QAction(themedIcon("chevron-left"), "", this);
-    m_prevImageAction->setToolTip(tr("Previous Image") + " (Left)");
-    m_prevImageAction->setShortcut(QKeySequence("Left"));
-    connect(m_prevImageAction, &QAction::triggered, this, [this]() { navigateFolderImage(-1); });
-
-    m_nextImageAction = new QAction(themedIcon("chevron-right"), "", this);
-    m_nextImageAction->setToolTip(tr("Next Image") + " (Right)");
-    m_nextImageAction->setShortcut(QKeySequence("Right"));
-    connect(m_nextImageAction, &QAction::triggered, this, [this]() { navigateFolderImage(1); });
-}
-
 void MainWindow::openImage() {
     if (m_isFileDialogOpen)
         return;
@@ -1151,15 +1103,6 @@ QIcon MainWindow::themedIcon(const QString &name) {
 }
 
 void MainWindow::refreshIcons() {
-    m_zoomInAction->setIcon(themedIcon("zoom-in"));
-    m_zoomOutAction->setIcon(themedIcon("zoom-out"));
-    m_actualSizeAction->setIcon(themedIcon("actual-size"));
-    m_fitWindowAction->setIcon(themedIcon("fit-screen"));
-    m_rotateLeftAction->setIcon(themedIcon("rotate-left"));
-    m_rotateRightAction->setIcon(themedIcon("rotate-right"));
-    m_mirrorAction->setIcon(themedIcon("mirror-horizontal"));
-    m_prevImageAction->setIcon(themedIcon("chevron-left"));
-    m_nextImageAction->setIcon(themedIcon("chevron-right"));
     if (m_titleIcon) {
         m_titleIcon->setPixmap(themedIcon("folder-open").pixmap(16, 16));
     }

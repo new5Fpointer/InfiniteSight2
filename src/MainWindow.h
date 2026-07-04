@@ -23,7 +23,6 @@
 #include <QSplitter>
 #include <QThread>
 #include <QTimer>
-#include <QToolBar>
 #include <QTreeWidget>
 
 class ZoomableGraphicsView : public QGraphicsView {
@@ -105,7 +104,6 @@ private:
 
     void setupUi();
     void createMenus();
-    void createToolBar();
     void createTitleBar();
     void createBottomBar();
     void startImageLoading(const QString &filePath);
@@ -183,16 +181,6 @@ private:
     QAction *m_settingsAction;
     QAction *m_darkAction;
     QAction *m_lightAction;
-
-    QAction *m_zoomInAction;
-    QAction *m_zoomOutAction;
-    QAction *m_actualSizeAction;
-    QAction *m_fitWindowAction;
-    QAction *m_rotateLeftAction;
-    QAction *m_rotateRightAction;
-    QAction *m_mirrorAction;
-    QAction *m_prevImageAction;
-    QAction *m_nextImageAction;
 
     QThread *m_loaderThread;
     ImageLoader *m_imageLoader;
