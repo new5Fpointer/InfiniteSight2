@@ -1,4 +1,5 @@
 #include "SettingsManager.h"
+#include "ThemeManager.h"
 
 SettingsManager::SettingsManager(QObject *parent)
     : QObject(parent)
@@ -29,6 +30,13 @@ void SettingsManager::setPerformance(const PerformanceSettings &settings) {
 
 void SettingsManager::setAppearance(const AppearanceSettings &settings) {
     m_appearance = settings;
+    ThemeManager::instance().setCurrentTheme(validateThemeId(m_appearance.theme));
+}
+
+QString SettingsManager::validateThemeId(const QString &id) {
+    if (ThemeManager::instance().availableThemeIds().contains(id))
+        return id;
+    return QStringLiteral("dark");
 }
 
 void SettingsManager::addRecentFile(const QString &filePath) {
@@ -80,5 +88,7 @@ void SettingsManager::load() {
 
     m_appearance.uiFont = m_settings.value("appearance/uiFont", "Segoe UI").toString();
     m_appearance.uiFontSize = m_settings.value("appearance/uiFontSize", 10).toInt();
-    m_appearance.theme = m_settings.value("appearance/theme", "dark").toString();
+    m_appearance.theme = validateThemeId(m_settings.value("appearance/theme", "dark").toString());
+
+    ThemeManager::instance().setCurrentTheme(m_appearance.theme);
 }

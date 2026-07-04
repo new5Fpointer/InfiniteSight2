@@ -1,4 +1,5 @@
 #include "SettingsWindow.h"
+#include "ThemeManager.h"
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -40,7 +41,10 @@ void SettingsWindow::setupUi() {
     QFormLayout *formLayout = new QFormLayout(appearanceGroup);
 
     m_themeCombo = new QComboBox(appearanceGroup);
-    m_themeCombo->addItems({tr("Dark"), tr("Light")});
+    const QList<Theme> themes = ThemeManager::instance().availableThemes();
+    for (const Theme &theme : themes) {
+        m_themeCombo->addItem(theme.displayName, theme.id);
+    }
     formLayout->addRow(tr("Theme:"), m_themeCombo);
 
     layout->addWidget(appearanceGroup);
@@ -63,7 +67,8 @@ void SettingsWindow::setupUi() {
 
 void SettingsWindow::loadCurrentSettings() {
     AppearanceSettings a = m_manager->appearance();
-    m_themeCombo->setCurrentIndex(a.theme == "dark" ? 0 : 1);
+    const int idx = m_themeCombo->findData(a.theme);
+    m_themeCombo->setCurrentIndex(idx >= 0 ? idx : 0);
 
     GeneralSettings g = m_manager->general();
     m_showInfoPanelCheck->setChecked(g.showInfoPanel);
@@ -74,7 +79,7 @@ void SettingsWindow::loadCurrentSettings() {
 
 void SettingsWindow::applyFromUi() {
     AppearanceSettings a;
-    a.theme = m_themeCombo->currentIndex() == 0 ? "dark" : "light";
+    a.theme = m_themeCombo->currentData().toString();
     m_manager->setAppearance(a);
 
     GeneralSettings g = m_manager->general();

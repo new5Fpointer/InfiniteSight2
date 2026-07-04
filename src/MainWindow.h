@@ -115,10 +115,11 @@ private:
     void updateRoamStatus();
     void applyStyleSheet();
     QIcon themedIcon(const QString &name);
-    void refreshToolBarIcons();
+    void refreshIcons();
     void updateTitleBarTitle();
     void updateBottomBarInfo();
     void updateCenterContainerPos();
+    void onThemeChanged();
     ResizeEdge getResizeEdge(const QPoint &pos) const;
     void updateCursorForResize(ResizeEdge edge);
     void clearResizeCursor();

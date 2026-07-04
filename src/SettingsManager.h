@@ -52,6 +52,8 @@ signals:
     void settingsChanged();
 
 private:
+    static QString validateThemeId(const QString &id);
+
     QSettings m_settings;
     GeneralSettings m_general;
     PerformanceSettings m_performance;

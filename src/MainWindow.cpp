@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "ImageCache.h"
 #include "SettingsWindow.h"
+#include "ThemeManager.h"
 #include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
@@ -244,15 +245,9 @@ void MainWindow::setupUi() {
     m_pinBtn->setCheckable(true);
     connect(m_pinBtn, &QPushButton::clicked, this, [this]() {
         Qt::WindowFlags flags = windowFlags();
-        if (flags & Qt::WindowStaysOnTopHint) {
-            setWindowFlags(flags & ~Qt::WindowStaysOnTopHint);
-            m_pinBtn->setIcon(themedIcon("pin"));
-            m_pinBtn->setChecked(false);
-        } else {
-            setWindowFlags(flags | Qt::WindowStaysOnTopHint);
-            m_pinBtn->setIcon(themedIcon("pin-off"));
-            m_pinBtn->setChecked(true);
-        }
+        bool pinned = flags & Qt::WindowStaysOnTopHint;
+        setWindowFlags(pinned ? (flags & ~Qt::WindowStaysOnTopHint) : (flags | Qt::WindowStaysOnTopHint));
+        refreshIcons();
         show();
     });
     titleLayout->addWidget(m_pinBtn);
@@ -644,20 +639,6 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
         m_bottomBar->setGeometry(0, height() - barHeight, width(), barHeight);
     }
     updateCenterContainerPos();
-}
-
-void MainWindow::changeEvent(QEvent *event) {
-    if (event->type() == QEvent::WindowStateChange) {
-        if (isMaximized() || isFullScreen()) {
-            if (m_resizing) {
-                m_resizing = false;
-                m_resizeEdge = ResizeEdge::None;
-            }
-            clearResizeCursor();
-        }
-        updateMaximizeIcon();
-    }
-    QMainWindow::changeEvent(event);
 }
 
 void MainWindow::createMenus() {
@@ -1086,41 +1067,17 @@ void MainWindow::applySettings() {
     QApplication::setFont(appFont);
     menuBar()->setFont(appFont);
 
-    applyStyleSheet();
-    refreshToolBarIcons();
+    ThemeManager::instance().setCurrentTheme(a.theme);
+    onThemeChanged();
 
     m_darkAction->setChecked(a.theme == "dark");
     m_lightAction->setChecked(a.theme == "light");
 }
 
 void MainWindow::applyStyleSheet() {
-    AppearanceSettings a = m_settingsManager->appearance();
-    QString theme = a.theme;
-    QString bg = theme == "dark" ? "#2D2D30" : "#FFFFFF";
-    QString accent = "#007ACC";
-    QString text = theme == "dark" ? "#E0E0E0" : "#000000";
-    QString menuText = theme == "dark" ? "#CCCCCC" : "#000000";
-    QString menuBg = theme == "dark" ? "#2D2D30" : "#FFFFFF";
-    QString menuBorder = theme == "dark" ? "#3F3F46" : "#E0E0E0";
-    QString menuHoverBg = theme == "dark" ? "#3F3F46" : "#E0E0E0";
-    QString menuHoverText = theme == "dark" ? "#FFFFFF" : "#000000";
-    QString menuSep = theme == "dark" ? "#3F3F46" : "#E0E0E0";
-    QString menuDisabled = theme == "dark" ? "#666666" : "#999999";
-    QString border = theme == "dark" ? "#1E1E1E" : "#CCCCCC";
-    QString selected = theme == "dark" ? "#3F3F46" : "#E0E0E0";
-    QString progressBg = theme == "dark" ? "#1E1E1E" : "#FFFFFF";
-    QString scrollBg = theme == "dark" ? "#404040" : "#F0F0F0";
-    QString scrollHandle = theme == "dark" ? "#606060" : "#C0C0C0";
-    QString scrollHandleHover = theme == "dark" ? "#808080" : "#A0A0A0";
-    QString titleBarBg = theme == "dark" ? "#2D2D30" : "#F3F3F3";
-    QString titleBarText = theme == "dark" ? "#E0E0E0" : "#000000";
-    QString bottomBarBg = theme == "dark" ? "#2D2D30" : "#FFFFFF";
-    QString bottomBarBgFullscreen = theme == "dark" ? "#E62D2D30" : "#E6FFFFFF";
-    QString btnHover = theme == "dark" ? "#3F3F46" : "#E5E5E5";
-    QString closeHover = "#E81123";
-    QString viewBg = theme == "dark" ? "#1E1E1E" : "#FFFFFF";
-    QString pageLabelBorder = theme == "dark" ? "#555555" : "#CCCCCC";
-    QString pinActiveBg = theme == "dark" ? "#3F3F46" : "#E0E0E0";
+    const AppearanceSettings a = m_settingsManager->appearance();
+    const Theme t = ThemeManager::instance().currentTheme();
+    const auto c = [](const QColor &color) { return color.name(QColor::HexArgb); };
 
     QString style = QString(
                         "QMainWindow, QDockWidget, QTreeWidget, QScrollArea, QWidget {"
@@ -1166,15 +1123,17 @@ void MainWindow::applyStyleSheet() {
                         "#pageEdit { color: %15; font-size: 12px; background-color: transparent; border: 1px solid %21; border-radius: 4px; padding: 2px 4px; }"
                         "#bottomBtn { background-color: transparent; border: none; border-radius: 4px; }"
                         "#bottomBtn:hover { background-color: %16; }"
+                        "#bottomBtn[fullscreen=\"true\"]:hover { background-color: %29; }"
                         "#infoBlock { background-color: %18; color: %15; font-size: 11px; border-radius: 4px; padding: 2px 8px; }"
+                        "#infoBlock[fullscreen=\"true\"] { background-color: %30; color: %15; }"
                         "QGraphicsView { background-color: %19; border: none; }")
-                        .arg(bg, text, a.uiFont, QString::number(a.uiFontSize))
-                        .arg(titleBarBg, menuText, border, selected, accent, progressBg, scrollBg, scrollHandle, scrollHandleHover)
-                        .arg(titleBarBg, titleBarText, btnHover, closeHover, bottomBarBg, viewBg)
-                        .arg(bottomBarBgFullscreen)
-                        .arg(pageLabelBorder)
-                        .arg(menuBg, menuBorder, menuHoverBg, menuHoverText, menuSep, menuDisabled)
-                        .arg(pinActiveBg);
+                        .arg(c(t.windowBackground), c(t.titleBarText), a.uiFont, QString::number(a.uiFontSize))
+                        .arg(c(t.titleBarBackground), c(t.menuText), c(t.border), c(t.selected), c(t.accent), c(t.progressBackground), c(t.scrollBackground), c(t.scrollHandle), c(t.scrollHandleHover))
+                        .arg(c(t.titleBarBackground), c(t.titleBarText), c(t.buttonHover), c(t.closeHover), c(t.bottomBarBackground), c(t.viewBackground))
+                        .arg(c(t.bottomBarBackgroundFullscreen))
+                        .arg(c(t.pageLabelBorder))
+                        .arg(c(t.menuBackground), c(t.menuBorder), c(t.menuHoverBackground), c(t.menuHoverText), c(t.menuSeparator), c(t.menuDisabled))
+                        .arg(c(t.selected));
 
     setStyleSheet(style);
 
@@ -1186,13 +1145,10 @@ void MainWindow::applyStyleSheet() {
 }
 
 QIcon MainWindow::themedIcon(const QString &name) {
-    QString theme = m_settingsManager->appearance().theme;
-    QString path = QString(":/icons/%1/%2.svg").arg(theme, name);
-    return QIcon(path);
+    return ThemeManager::instance().icon(name);
 }
 
-void MainWindow::refreshToolBarIcons() {
-    QString theme = m_settingsManager->appearance().theme;
+void MainWindow::refreshIcons() {
     m_zoomInAction->setIcon(themedIcon("zoom-in"));
     m_zoomOutAction->setIcon(themedIcon("zoom-out"));
     m_actualSizeAction->setIcon(themedIcon("actual-size"));
@@ -1203,21 +1159,19 @@ void MainWindow::refreshToolBarIcons() {
     m_prevImageAction->setIcon(themedIcon("chevron-left"));
     m_nextImageAction->setIcon(themedIcon("chevron-right"));
     if (m_titleIcon) {
-        QPixmap iconPix = QPixmap(QString(":/icons/%1/folder-open.svg").arg(theme)).scaled(16, 16, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        m_titleIcon->setPixmap(iconPix);
+        m_titleIcon->setPixmap(themedIcon("folder-open").pixmap(16, 16));
     }
     if (m_menuBtn)
         m_menuBtn->setIcon(themedIcon("menu"));
     if (m_pinBtn) {
-        Qt::WindowFlags flags = windowFlags();
-        bool pinned = flags & Qt::WindowStaysOnTopHint;
+        bool pinned = windowFlags() & Qt::WindowStaysOnTopHint;
         m_pinBtn->setIcon(themedIcon(pinned ? "pin-off" : "pin"));
         m_pinBtn->setChecked(pinned);
     }
     if (m_minBtn)
         m_minBtn->setIcon(themedIcon("minimize"));
     if (m_maxBtn)
-        m_maxBtn->setIcon(themedIcon("maximize"));
+        updateMaximizeIcon();
     if (m_closeBtn)
         m_closeBtn->setIcon(themedIcon("close"));
 
@@ -1246,9 +1200,6 @@ void MainWindow::refreshToolBarIcons() {
         m_copyBtn->setIcon(themedIcon("copy"));
     if (m_deleteBtn)
         m_deleteBtn->setIcon(themedIcon("delete"));
-
-    if (m_maxBtn)
-        updateMaximizeIcon();
 }
 
 static QString elideFileName(const QString &fileName, int maxLength) {
@@ -1327,7 +1278,13 @@ void MainWindow::onMaximize() {
     } else {
         showMaximized();
     }
-    updateMaximizeIcon();
+}
+
+void MainWindow::changeEvent(QEvent *event) {
+    if (event->type() == QEvent::WindowStateChange) {
+        updateMaximizeIcon();
+    }
+    QMainWindow::changeEvent(event);
 }
 
 void MainWindow::onClose() {
@@ -1595,6 +1552,11 @@ void MainWindow::mouseDoubleClickEvent(QMouseEvent *event) {
         return;
     }
     QMainWindow::mouseDoubleClickEvent(event);
+}
+
+void MainWindow::onThemeChanged() {
+    applyStyleSheet();
+    refreshIcons();
 }
 
 void MainWindow::stopCurrentLoading() {

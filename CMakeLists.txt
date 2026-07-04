@@ -20,6 +20,7 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsWindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ThemeManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageLoader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageCache.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.cpp
@@ -30,6 +31,8 @@ set(HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsWindow.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Theme.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ThemeManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageLoader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageCache.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.h
