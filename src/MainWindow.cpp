@@ -1200,6 +1200,10 @@ void MainWindow::refreshIcons() {
         m_copyBtn->setIcon(themedIcon("copy"));
     if (m_deleteBtn)
         m_deleteBtn->setIcon(themedIcon("delete"));
+    if (m_fullscreenBtn) {
+        const QString iconName = m_fullscreenBtn->toolTip().startsWith(tr("Exit")) ? "fullscreen-exit" : "fullscreen";
+        m_fullscreenBtn->setIcon(themedIcon(iconName));
+    }
 }
 
 static QString elideFileName(const QString &fileName, int maxLength) {
