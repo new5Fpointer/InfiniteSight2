@@ -13,6 +13,8 @@ struct Theme {
     QColor titleBarBackground;
     QColor bottomBarBackground;
     QColor bottomBarBackgroundFullscreen; // with alpha baked in
+    QColor bottomBtnHoverFullscreen;      // with alpha baked in
+    QColor infoBlockBackgroundFullscreen; // with alpha baked in
     QColor viewBackground;
     QColor infoBlockBackground;
 

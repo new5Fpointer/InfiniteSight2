@@ -14,6 +14,8 @@ Theme Theme::dark() {
     t.titleBarBackground = QColor(QStringLiteral("#2D2D30"));
     t.bottomBarBackground = QColor(QStringLiteral("#2D2D30"));
     t.bottomBarBackgroundFullscreen = QColor(QStringLiteral("#E62D2D30"));
+    t.bottomBtnHoverFullscreen = QColor(QStringLiteral("#E63F3F46"));
+    t.infoBlockBackgroundFullscreen = QColor(QStringLiteral("#E62D2D30"));
     t.viewBackground = QColor(QStringLiteral("#1E1E1E"));
     t.infoBlockBackground = QColor(QStringLiteral("#2D2D30"));
 
@@ -54,6 +56,8 @@ Theme Theme::light() {
     t.titleBarBackground = QColor(QStringLiteral("#F3F3F3"));
     t.bottomBarBackground = QColor(QStringLiteral("#FFFFFF"));
     t.bottomBarBackgroundFullscreen = QColor(QStringLiteral("#E6FFFFFF"));
+    t.bottomBtnHoverFullscreen = QColor(QStringLiteral("#E6E5E5E5"));
+    t.infoBlockBackgroundFullscreen = QColor(QStringLiteral("#E6FFFFFF"));
     t.viewBackground = QColor(QStringLiteral("#FFFFFF"));
     t.infoBlockBackground = QColor(QStringLiteral("#F3F3F3"));
 

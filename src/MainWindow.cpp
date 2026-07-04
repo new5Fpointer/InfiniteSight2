@@ -1133,7 +1133,9 @@ void MainWindow::applyStyleSheet() {
                         .arg(c(t.bottomBarBackgroundFullscreen))
                         .arg(c(t.pageLabelBorder))
                         .arg(c(t.menuBackground), c(t.menuBorder), c(t.menuHoverBackground), c(t.menuHoverText), c(t.menuSeparator), c(t.menuDisabled))
-                        .arg(c(t.selected));
+                        .arg(c(t.selected))
+                        .arg(c(t.bottomBtnHoverFullscreen))
+                        .arg(c(t.infoBlockBackgroundFullscreen));
 
     setStyleSheet(style);
 
