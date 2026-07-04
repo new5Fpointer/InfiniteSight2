@@ -190,6 +190,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_bottomBarTimer, &QTimer::timeout, this, &MainWindow::hideBottomBarAnimated);
     m_graphicsView->setMouseTracking(true);
     m_graphicsView->viewport()->setMouseTracking(true);
+    m_graphicsView->setFocusPolicy(Qt::StrongFocus);
+    m_graphicsView->viewport()->setFocusPolicy(Qt::StrongFocus);
+    m_graphicsView->installEventFilter(this);
     m_graphicsView->viewport()->installEventFilter(this);
     m_titleBar->installEventFilter(this);
     m_bottomBar->installEventFilter(this);
@@ -1303,6 +1306,19 @@ void MainWindow::hideBottomBarAnimated() {
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
+    if ((obj == m_graphicsView || obj == m_graphicsView->viewport()) && event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_Left) {
+            navigateFolderImage(-1);
+            keyEvent->accept();
+            return true;
+        } else if (keyEvent->key() == Qt::Key_Right) {
+            navigateFolderImage(1);
+            keyEvent->accept();
+            return true;
+        }
+    }
+
     if (obj == m_pageLabel && event->type() == QEvent::MouseButtonRelease) {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
         if (me->button() == Qt::LeftButton && !m_currentFolderImages.isEmpty()) {
