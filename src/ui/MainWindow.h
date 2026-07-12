@@ -131,6 +131,7 @@ private:
     QPushButton *m_closeBtn;
     QPoint m_dragPos;
     bool m_dragging;
+    bool m_dragFromMaximized = false;
     bool m_resizing = false;
     ResizeEdge m_resizeEdge = ResizeEdge::None;
     QTimer *m_bottomBarTimer;

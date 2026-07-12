@@ -1159,6 +1159,8 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
                 clearResizeCursor();
             }
         }
+    } else if (isMaximized() && event->type() == QEvent::MouseMove) {
+        clearResizeCursor();
     }
 
     if (event->type() == QEvent::MouseMove && isFullScreen() && m_bottomBar) {
@@ -1185,8 +1187,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         if (m_titleBar && m_titleBar->geometry().contains(event->pos())) {
             if (isMaximized()) {
-                showNormal();
-                updateMaximizeIcon();
+                m_dragFromMaximized = true;
+                m_dragPos = event->globalPosition().toPoint();
+                event->accept();
+                return;
             }
             m_dragging = true;
             m_dragPos = event->globalPosition().toPoint() - frameGeometry().topLeft();
@@ -1198,11 +1202,22 @@ void MainWindow::mousePressEvent(QMouseEvent *event) {
 }
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event) {
-    if (m_dragging && (event->buttons() & Qt::LeftButton)) {
-        if (isMaximized()) {
+    if (m_dragFromMaximized && (event->buttons() & Qt::LeftButton)) {
+        QPoint delta = event->globalPosition().toPoint() - m_dragPos;
+        if (delta.manhattanLength() > 5) {
             showNormal();
             updateMaximizeIcon();
+            m_dragging = true;
+            m_dragFromMaximized = false;
+            m_dragPos = event->globalPosition().toPoint() - frameGeometry().topLeft();
+            move(event->globalPosition().toPoint() - m_dragPos);
+            event->accept();
+            return;
         }
+        event->accept();
+        return;
+    }
+    if (m_dragging && (event->buttons() & Qt::LeftButton)) {
         move(event->globalPosition().toPoint() - m_dragPos);
         event->accept();
         return;
@@ -1228,6 +1243,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
 void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_dragging = false;
+        m_dragFromMaximized = false;
         if (m_resizing) {
             m_resizing = false;
             m_resizeEdge = ResizeEdge::None;
