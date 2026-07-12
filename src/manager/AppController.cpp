@@ -51,6 +51,12 @@ AppController::AppController(MainWindow *mainWindow, QObject *parent)
     connect(this, &AppController::settingsApplied,
             mainWindow, &MainWindow::onSettingsApplied);
 
+    // 同步 fitInView 后的实际缩放值到 ViewStateManager
+    connect(mainWindow, &MainWindow::actualScaleFactorChanged,
+            this, [this](double scale) {
+                m_viewStateManager->setScaleFactor(scale);
+            });
+
     applySettings();
 }
 

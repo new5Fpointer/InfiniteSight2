@@ -21,6 +21,7 @@ public:
     void mirror();
 
     void setFitToWindow(bool fit);
+    void setScaleFactor(double scale);
 
 signals:
     void viewStateChanged(const ViewState &state);

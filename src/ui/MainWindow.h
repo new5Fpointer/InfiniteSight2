@@ -46,6 +46,7 @@ signals:
     void themeChangeRequested(const QString &theme);
     void openSettingsRequested();
     void windowCloseRequested();
+    void actualScaleFactorChanged(double scaleFactor);
 
 public slots:
     void onImageLoaded(const ImageViewModel &viewModel);

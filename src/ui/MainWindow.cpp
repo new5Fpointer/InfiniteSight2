@@ -717,6 +717,9 @@ void MainWindow::applyViewState() {
 
     if (m_currentViewState.isFitToWindow) {
         m_graphicsView->fitInView(m_pixmapItem, Qt::KeepAspectRatio);
+        double actualScale = m_graphicsView->transform().m11();
+        m_currentViewState.scaleFactor = actualScale;
+        emit actualScaleFactorChanged(actualScale);
     } else {
         m_graphicsView->scale(m_currentViewState.scaleFactor, m_currentViewState.scaleFactor);
     }

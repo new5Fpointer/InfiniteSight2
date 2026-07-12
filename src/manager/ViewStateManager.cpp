@@ -64,3 +64,7 @@ void ViewStateManager::setFitToWindow(bool fit) {
     m_state.isFitToWindow = fit;
     emit viewStateChanged(m_state);
 }
+
+void ViewStateManager::setScaleFactor(double scale) {
+    m_state.scaleFactor = scale;
+}
