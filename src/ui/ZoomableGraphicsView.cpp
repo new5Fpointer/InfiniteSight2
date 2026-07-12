@@ -89,6 +89,7 @@ void ZoomableGraphicsView::wheelEvent(QWheelEvent *event) {
         setTransformationAnchor(QGraphicsView::NoAnchor);
         translate(delta.x(), delta.y());
 
+        emit zoomLevelChanged(transform().m11());
         event->accept();
     } else {
         int delta = static_cast<int>(event->angleDelta().y() * 0.5);

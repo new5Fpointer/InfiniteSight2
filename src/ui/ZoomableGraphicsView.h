@@ -10,6 +10,7 @@ public:
 
 signals:
     void filesDropped(const QStringList &paths);
+    void zoomLevelChanged(double scaleFactor);
 
 protected:
     void drawBackground(QPainter *painter, const QRectF &rect) override;

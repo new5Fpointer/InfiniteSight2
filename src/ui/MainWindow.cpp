@@ -80,6 +80,13 @@ MainWindow::MainWindow(QWidget *parent)
                     emit imageOpenRequested(paths.first());
             });
 
+    connect(m_graphicsView, &ZoomableGraphicsView::zoomLevelChanged,
+            this, [this](double scaleFactor) {
+                m_currentViewState.scaleFactor = scaleFactor;
+                m_currentViewState.isFitToWindow = false;
+                updateBottomBarInfo();
+            });
+
     updateMaximizeIcon();
 }
 
