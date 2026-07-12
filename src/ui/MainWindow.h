@@ -1,43 +1,26 @@
 #pragma once
 
-#include "ImageLoader.h"
-#include "SettingsManager.h"
+#include "common/ImageModel.h"
+#include "ui/ZoomableGraphicsView.h"
 #include <QAction>
+#include <QCloseEvent>
 #include <QDockWidget>
 #include <QDragEnterEvent>
-#include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QEvent>
-#include <QFrame>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QProgressBar>
 #include <QPushButton>
-#include <QResizeEvent>
 #include <QSplitter>
-#include <QThread>
 #include <QTimer>
 #include <QTreeWidget>
-
-class ZoomableGraphicsView : public QGraphicsView {
-    Q_OBJECT
-
-public:
-    explicit ZoomableGraphicsView(QWidget *parent = nullptr);
-
-protected:
-    void drawBackground(QPainter *painter, const QRectF &rect) override;
-    void wheelEvent(QWheelEvent *event) override;
-    void dragEnterEvent(QDragEnterEvent *event) override;
-    void dragMoveEvent(QDragMoveEvent *event) override;
-    void dropEvent(QDropEvent *event) override;
-};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -45,13 +28,31 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    void handleFileDrop(const QStringList &paths);
+
+signals:
+    void imageOpenRequested(const QString &path);
+    void navigateNextRequested();
+    void navigatePreviousRequested();
+    void jumpToImageRequested(int index);
+    void zoomInRequested();
+    void zoomOutRequested();
+    void actualSizeRequested();
+    void fitToWindowRequested();
+    void toggleFitActualSizeRequested();
+    void rotateRequested(int angle);
+    void mirrorRequested();
+    void deleteImageRequested();
+    void infoPanelVisibilityChanged(bool visible);
+    void themeChangeRequested(const QString &theme);
+    void openSettingsRequested();
+    void windowCloseRequested();
 
 public slots:
-    void onImageLoaded(const QPixmap &pixmap, const QString &filePath, const QString &jobId);
-    void onInfoReady(const ImageInfo &info, const QString &jobId);
+    void onImageLoaded(const ImageViewModel &viewModel);
+    void onInfoReady(const ImageInfo &info);
     void onProgress(int value);
-    void applySettings();
+    void onViewStateChanged(const ViewState &state);
+    void onSettingsApplied(const GeneralSettings &g, const PerformanceSettings &p, const AppearanceSettings &a);
 
 private slots:
     void openImage();
@@ -106,12 +107,9 @@ private:
     void createMenus();
     void createTitleBar();
     void createBottomBar();
-    void startImageLoading(const QString &filePath);
-    void stopCurrentLoading();
     void resetCanvas();
-    void initFolderRoaming(const QString &imagePath);
-    void updateRoamStatus();
     void applyStyleSheet();
+    void applyViewState();
     QIcon themedIcon(const QString &name);
     void refreshIcons();
     void updateTitleBarTitle();
@@ -121,8 +119,6 @@ private:
     ResizeEdge getResizeEdge(const QPoint &pos) const;
     void updateCursorForResize(ResizeEdge edge);
     void clearResizeCursor();
-
-    SettingsManager *m_settingsManager;
 
     QWidget *m_titleBar;
     QLabel *m_titleIcon;
@@ -159,7 +155,6 @@ private:
     QPushButton *m_deleteBtn;
     QPushButton *m_fullscreenBtn;
     bool m_bottomBarInLayout = false;
-    bool m_isFitToWindow = true;
 
     QSplitter *m_splitter;
     ZoomableGraphicsView *m_graphicsView;
@@ -182,26 +177,12 @@ private:
     QAction *m_darkAction;
     QAction *m_lightAction;
 
-    QThread *m_loaderThread;
-    ImageLoader *m_imageLoader;
+    ImageViewModel m_currentViewModel;
+    ViewState m_currentViewState;
 
-    QString m_currentImagePath;
-    QString m_currentJobId;
-    double m_scaleFactor;
-    QStringList m_currentFolderImages;
-    int m_currentFolderIndex;
-    int m_imageWidth;
-    int m_imageHeight;
-    qint64 m_fileSize;
+    GeneralSettings m_generalSettings;
+    PerformanceSettings m_performanceSettings;
+    AppearanceSettings m_appearanceSettings;
 
-    // 降采样相关
-    bool m_isDownsampled = false;
-    int m_originalImageWidth = 0;
-    int m_originalImageHeight = 0;
-
-    // 防止多次点击打开多个文件对话框
     bool m_isFileDialogOpen = false;
-
-private slots:
-    void onLoadResultReady(const LoadResult &result, const QString &jobId);
 };

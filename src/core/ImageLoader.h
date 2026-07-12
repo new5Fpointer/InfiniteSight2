@@ -1,26 +1,10 @@
 #pragma once
 
-#include "SettingsManager.h"
+#include "common/ImageModel.h"
 #include <QMap>
 #include <QObject>
 #include <QPixmap>
 #include <QVariant>
-
-struct ImageInfo {
-    QMap<QString, QString> fileInfo;
-    QMap<QString, QString> imageInfo;
-    QMap<QString, QVariant> exifInfo;
-    QString error;
-};
-
-struct LoadResult {
-    QPixmap pixmap;
-    ImageInfo info;
-    QString error;
-    bool isDownsampled = false;
-    int originalWidth = 0;
-    int originalHeight = 0;
-};
 
 class ImageLoader : public QObject {
     Q_OBJECT

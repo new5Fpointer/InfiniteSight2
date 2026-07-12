@@ -1,32 +1,8 @@
 #pragma once
 
+#include "common/ImageModel.h"
 #include <QObject>
 #include <QSettings>
-#include <QString>
-#include <QVariant>
-#include <QMap>
-
-struct GeneralSettings {
-    QString defaultWindowState = "normal";
-    QByteArray windowGeometry;
-    bool showInfoPanel = true;
-    QStringList recentFiles;
-    int maxRecentFiles = 5;
-    QString language = "en_us";
-};
-
-struct PerformanceSettings {
-    bool lazyLoading = true;
-    bool quickRender = false;
-    bool skipExif = false;
-    int cacheSize = 100;
-};
-
-struct AppearanceSettings {
-    QString uiFont = "Segoe UI";
-    int uiFontSize = 10;
-    QString theme = "dark";
-};
 
 class SettingsManager : public QObject {
     Q_OBJECT
@@ -52,8 +28,6 @@ signals:
     void settingsChanged();
 
 private:
-    static QString validateThemeId(const QString &id);
-
     QSettings m_settings;
     GeneralSettings m_general;
     PerformanceSettings m_performance;

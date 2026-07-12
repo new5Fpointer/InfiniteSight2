@@ -1,7 +1,7 @@
 #include "MainWindow.h"
-#include "ImageCache.h"
 #include "SettingsWindow.h"
 #include "ThemeManager.h"
+#include "common/AppConstants.h"
 #include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
@@ -22,145 +22,21 @@
 #include <QStyle>
 #include <QTransform>
 #include <QUrl>
-#include <QUuid>
 #include <QVBoxLayout>
 
-ZoomableGraphicsView::ZoomableGraphicsView(QWidget *parent)
-    : QGraphicsView(parent) {
-    setAcceptDrops(true);
-    setDragMode(QGraphicsView::ScrollHandDrag);
-    setRenderHint(QPainter::SmoothPixmapTransform, true);
-    setAlignment(Qt::AlignCenter);
-    setRenderHint(QPainter::Antialiasing, true);
-    setRenderHint(QPainter::TextAntialiasing, true);
-    setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
-    setCacheMode(QGraphicsView::CacheBackground);
-    setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
-    // setViewport(new QOpenGLWidget(this));
-    // if (auto* glWidget = qobject_cast<QOpenGLWidget*>(viewport())) {
-    //     glWidget->setFormat([]{
-    //         QSurfaceFormat fmt;
-    //         fmt.setSamples(4);
-    //         fmt.setRenderableType(QSurfaceFormat::OpenGL);
-    //         return fmt;
-    //     }());
-    // }
-}
-
-void ZoomableGraphicsView::drawBackground(QPainter *painter, const QRectF &rect) {
-    QGraphicsView::drawBackground(painter, rect);
-
-    if (!scene())
-        return;
-
-    QGraphicsPixmapItem *pixmapItem = nullptr;
-    for (QGraphicsItem *item : scene()->items()) {
-        if (auto *pItem = qgraphicsitem_cast<QGraphicsPixmapItem *>(item)) {
-            if (pItem->pixmap().hasAlphaChannel()) {
-                pixmapItem = pItem;
-                break;
-            }
-        }
-    }
-
-    if (!pixmapItem)
-        return;
-
-    qreal scale = transform().m11();
-    if (scale <= 0)
-        scale = 1.0;
-    int gridSize = qBound(4, int(20 / scale), 64);
-
-    QRectF imageRect = pixmapItem->sceneBoundingRect();
-    QRectF intersectRect = rect.intersected(imageRect);
-
-    if (intersectRect.isEmpty())
-        return;
-
-    painter->setRenderHint(QPainter::Antialiasing, false);
-
-    QColor light(240, 240, 240);
-    QColor dark(200, 200, 200);
-
-    int xStart = qFloor(intersectRect.x() / gridSize) * gridSize;
-    int yStart = qFloor(intersectRect.y() / gridSize) * gridSize;
-
-    for (int y = yStart; y < qCeil(intersectRect.bottom()); y += gridSize) {
-        for (int x = xStart; x < qCeil(intersectRect.right()); x += gridSize) {
-            QRectF cell(x, y, gridSize, gridSize);
-            QRectF drawRect = cell.intersected(intersectRect);
-            if (drawRect.isEmpty())
-                continue;
-
-            bool isLight = ((x / gridSize) + (y / gridSize)) % 2 == 0;
-            painter->fillRect(drawRect, isLight ? light : dark);
-        }
-    }
-}
-
-void ZoomableGraphicsView::wheelEvent(QWheelEvent *event) {
-    if (event->modifiers() & Qt::ControlModifier) {
-        double zoomInFactor = 1.15;
-        double zoomOutFactor = 1.0 / zoomInFactor;
-        double scaleFactor = (event->angleDelta().y() > 0) ? zoomInFactor : zoomOutFactor;
-
-        QPointF mousePos = event->position();
-        QPointF scenePos = mapToScene(mousePos.toPoint());
-
-        scale(scaleFactor, scaleFactor);
-
-        QPointF newScenePos = mapToScene(mousePos.toPoint());
-        QPointF delta = newScenePos - scenePos;
-        setTransformationAnchor(QGraphicsView::NoAnchor);
-        translate(delta.x(), delta.y());
-
-        event->accept();
-    } else {
-        int delta = static_cast<int>(event->angleDelta().y() * 0.5);
-        verticalScrollBar()->setValue(verticalScrollBar()->value() - delta);
-        event->accept();
-    }
-}
-
-void ZoomableGraphicsView::dragEnterEvent(QDragEnterEvent *event) {
-    if (event->mimeData()->hasUrls()) {
-        event->acceptProposedAction();
-    } else {
-        event->ignore();
-    }
-}
-
-void ZoomableGraphicsView::dragMoveEvent(QDragMoveEvent *event) {
-    if (event->mimeData()->hasUrls()) {
-        event->acceptProposedAction();
-    } else {
-        event->ignore();
-    }
-}
-
-void ZoomableGraphicsView::dropEvent(QDropEvent *event) {
-    if (parentWidget()) {
-        MainWindow *mainWin = qobject_cast<MainWindow *>(parentWidget()->window());
-        if (mainWin) {
-            QList<QUrl> urls = event->mimeData()->urls();
-            QStringList paths;
-            for (const QUrl &url : urls) {
-                paths.append(url.toLocalFile());
-            }
-            mainWin->handleFileDrop(paths);
-            event->acceptProposedAction();
-            return;
-        }
-    }
-    event->ignore();
-}
-
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_settingsManager(new SettingsManager(this)), m_graphicsView(new ZoomableGraphicsView(this)),
-      m_graphicsScene(new QGraphicsScene(this)), m_pixmapItem(nullptr), m_progressBar(new QProgressBar(this)),
-      m_loadingLabel(new QLabel(this)), m_roamLabel(new QLabel(this)), m_loaderThread(nullptr), m_imageLoader(nullptr),
-      m_fileInfoLabel(nullptr), m_fileSizeLabel(nullptr), m_fileDimensionLabel(nullptr), m_fileFormatLabel(nullptr),
-      m_scaleFactor(1.0), m_currentFolderIndex(-1), m_imageWidth(0), m_imageHeight(0), m_fileSize(0), m_dragging(false),
+    : QMainWindow(parent),
+      m_graphicsView(new ZoomableGraphicsView(this)),
+      m_graphicsScene(new QGraphicsScene(this)),
+      m_pixmapItem(nullptr),
+      m_progressBar(new QProgressBar(this)),
+      m_loadingLabel(new QLabel(this)),
+      m_roamLabel(new QLabel(this)),
+      m_fileInfoLabel(nullptr),
+      m_fileSizeLabel(nullptr),
+      m_fileDimensionLabel(nullptr),
+      m_fileFormatLabel(nullptr),
+      m_dragging(false),
       m_isFileDialogOpen(false) {
     setWindowTitle("InfiniteSight");
     resize(1200, 800);
@@ -198,12 +74,16 @@ MainWindow::MainWindow(QWidget *parent)
     m_bottomBar->installEventFilter(this);
     centralWidget()->installEventFilter(this);
 
-    applySettings();
+    connect(m_graphicsView, &ZoomableGraphicsView::filesDropped,
+            this, [this](const QStringList &paths) {
+                if (!paths.isEmpty())
+                    emit imageOpenRequested(paths.first());
+            });
+
     updateMaximizeIcon();
 }
 
 MainWindow::~MainWindow() {
-    stopCurrentLoading();
 }
 
 void MainWindow::setupUi() {
@@ -463,7 +343,7 @@ void MainWindow::createBottomBar() {
     connect(m_copyBtn, &QPushButton::clicked, this, [this]() {
         if (m_pixmapItem && !m_pixmapItem->pixmap().isNull()) {
             QApplication::clipboard()->setPixmap(m_pixmapItem->pixmap());
-            qInfo() << "Image copied to clipboard:" << QFileInfo(m_currentImagePath).fileName();
+            qInfo() << "Image copied to clipboard:" << QFileInfo(m_currentViewModel.filePath).fileName();
         }
     });
     centerLayout->addWidget(m_copyBtn);
@@ -471,36 +351,7 @@ void MainWindow::createBottomBar() {
     m_deleteBtn = createBottomBtn("delete");
     m_deleteBtn->setToolTip(tr("Delete Image"));
     connect(m_deleteBtn, &QPushButton::clicked, this, [this]() {
-        if (m_currentImagePath.isEmpty())
-            return;
-
-        QFile file(m_currentImagePath);
-        if (!file.moveToTrash()) {
-            qWarning() << "Failed to move image to trash:" << file.errorString();
-            return;
-        }
-        qInfo() << "Image moved to trash:" << QFileInfo(m_currentImagePath).fileName();
-
-        int currentIndex = m_currentFolderIndex;
-        m_currentFolderImages.removeAt(currentIndex);
-
-        if (m_currentFolderImages.isEmpty()) {
-            m_graphicsScene->clear();
-            m_pixmapItem = nullptr;
-            m_currentImagePath.clear();
-            m_currentFolderIndex = -1;
-            m_scaleFactor = 1.0;
-            updateTitleBarTitle();
-            updateBottomBarInfo();
-        } else {
-            if (currentIndex >= m_currentFolderImages.size()) {
-                m_currentFolderIndex = m_currentFolderImages.size() - 1;
-            } else {
-                m_currentFolderIndex = currentIndex;
-            }
-
-            startImageLoading(m_currentFolderImages[m_currentFolderIndex]);
-        }
+        emit deleteImageRequested();
     });
     centerLayout->addWidget(m_deleteBtn);
 
@@ -531,7 +382,6 @@ void MainWindow::updateCenterContainerPos() {
     if (!m_infoContainer)
         return;
 
-    // m_infoContainer 在 bottomLayout 最左侧，其左边界等于 layout 左内边距
     int infoLeft = m_bottomBar->layout()->contentsMargins().left();
     int spacing = qobject_cast<QHBoxLayout *>(m_infoContainer->layout())->spacing();
     const int margin = 3;
@@ -666,7 +516,7 @@ void MainWindow::createMenus() {
     m_infoToggle = new QAction(tr("&Image Information"), this);
     m_infoToggle->setShortcut(QKeySequence("Ctrl+I"));
     m_infoToggle->setCheckable(true);
-    m_infoToggle->setChecked(m_settingsManager->general().showInfoPanel);
+    m_infoToggle->setChecked(m_generalSettings.showInfoPanel);
     connect(m_infoToggle, &QAction::toggled, this, &MainWindow::toggleInfoPanel);
     m_viewMenu->addAction(m_infoToggle);
 
@@ -686,9 +536,8 @@ void MainWindow::createMenus() {
     connect(m_lightAction, &QAction::triggered, this, [this]() { switchTheme("light"); });
     themeMenu->addAction(m_lightAction);
 
-    QString currentTheme = m_settingsManager->appearance().theme;
-    m_darkAction->setChecked(currentTheme == "dark");
-    m_lightAction->setChecked(currentTheme == "light");
+    m_darkAction->setChecked(m_appearanceSettings.theme == "dark");
+    m_lightAction->setChecked(m_appearanceSettings.theme == "light");
 
     m_settingsMenu = menuBar->addMenu(tr("&Settings"));
     m_settingsAction = new QAction(tr("Application Settings"), this);
@@ -704,266 +553,100 @@ void MainWindow::openImage() {
 
     m_isFileDialogOpen = true;
     QString filePath = QFileDialog::getOpenFileName(this, tr("Open Image"), "",
-                                                    tr("Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp)"));
+                                                    AppConstants::imageFilterString());
     m_isFileDialogOpen = false;
 
     if (!filePath.isEmpty()) {
-        stopCurrentLoading();
-        resetCanvas();
-        startImageLoading(filePath);
+        emit imageOpenRequested(filePath);
     }
 }
 
 void MainWindow::toggleInfoPanel(bool visible) {
     m_infoDock->setVisible(visible);
-    GeneralSettings g = m_settingsManager->general();
-    g.showInfoPanel = visible;
-    m_settingsManager->setGeneral(g);
-    m_settingsManager->save();
+    emit infoPanelVisibilityChanged(visible);
 }
 
 void MainWindow::openSettings() {
-    SettingsWindow dialog(m_settingsManager, this);
-    connect(&dialog, &SettingsWindow::settingsApplied, this, &MainWindow::applySettings);
-    if (dialog.exec() == QDialog::Accepted) {
-        qInfo() << "Settings applied";
-    }
+    emit openSettingsRequested();
 }
 
 void MainWindow::switchTheme(const QString &theme) {
-    AppearanceSettings a = m_settingsManager->appearance();
-    a.theme = theme;
-    m_settingsManager->setAppearance(a);
-    m_settingsManager->save();
-    applySettings();
+    emit themeChangeRequested(theme);
 }
 
 void MainWindow::zoomIn() {
-    if (m_pixmapItem) {
-        m_scaleFactor *= 1.2;
-        m_graphicsView->scale(1.2, 1.2);
-        updateBottomBarInfo();
-    }
+    emit zoomInRequested();
 }
 
 void MainWindow::zoomOut() {
-    if (m_pixmapItem) {
-        m_scaleFactor *= 0.8;
-        m_graphicsView->scale(0.8, 0.8);
-        updateBottomBarInfo();
-    }
+    emit zoomOutRequested();
 }
 
 void MainWindow::actualSize() {
-    if (m_pixmapItem) {
-        m_graphicsView->resetTransform();
-        m_scaleFactor = 1.0;
-        updateBottomBarInfo();
-    }
+    emit actualSizeRequested();
 }
 
 void MainWindow::fitToWindow() {
-    if (m_pixmapItem) {
-        m_graphicsView->resetTransform();
-        m_graphicsView->fitInView(m_pixmapItem, Qt::KeepAspectRatio);
-        QTransform transform = m_graphicsView->transform();
-        m_scaleFactor = transform.m11();
-        updateBottomBarInfo();
-    }
+    emit fitToWindowRequested();
 }
 
 void MainWindow::toggleFitActualSize() {
-    if (!m_pixmapItem)
-        return;
-
-    if (m_isFitToWindow) {
-        actualSize();
-    } else {
-        fitToWindow();
-    }
-
-    m_isFitToWindow = !m_isFitToWindow;
-
-    if (m_fitBtn) {
-        if (m_isFitToWindow) {
-            m_fitBtn->setIcon(themedIcon("actual-size"));
-            m_fitBtn->setToolTip(tr("Actual Size"));
-        } else {
-            m_fitBtn->setIcon(themedIcon("fit-screen"));
-            m_fitBtn->setToolTip(tr("Fit to Window"));
-        }
-    }
+    emit toggleFitActualSizeRequested();
 }
 
 void MainWindow::rotateImage(int angle) {
-    if (!m_pixmapItem)
-        return;
-
-    QPixmap current = m_pixmapItem->pixmap();
-    if (current.isNull())
-        return;
-
-    QTransform transform;
-    transform.rotate(angle);
-    QPixmap rotated = current.transformed(transform, Qt::SmoothTransformation);
-    m_pixmapItem->setPixmap(rotated);
-
-    m_graphicsView->setSceneRect(m_graphicsScene->itemsBoundingRect());
-    m_graphicsView->fitInView(m_pixmapItem, Qt::KeepAspectRatio);
+    emit rotateRequested(angle);
 }
 
 void MainWindow::mirrorImage() {
-    if (!m_pixmapItem)
-        return;
-
-    QPixmap current = m_pixmapItem->pixmap();
-    if (current.isNull())
-        return;
-
-    QTransform transform;
-    transform.scale(-1, 1);
-    QPixmap mirrored = current.transformed(transform, Qt::SmoothTransformation);
-    m_pixmapItem->setPixmap(mirrored);
+    emit mirrorRequested();
 }
 
 void MainWindow::navigateFolderImage(int direction) {
-    if (m_currentFolderImages.isEmpty() || m_currentFolderIndex < 0)
-        return;
-
-    int newIndex = (m_currentFolderIndex + direction) % m_currentFolderImages.size();
-    if (newIndex < 0)
-        newIndex += m_currentFolderImages.size();
-    if (newIndex == m_currentFolderIndex)
-        return;
-
-    jumpToImage(newIndex);
+    if (direction > 0)
+        emit navigateNextRequested();
+    else
+        emit navigatePreviousRequested();
 }
 
 void MainWindow::jumpToImage(int index) {
-    if (m_currentFolderImages.isEmpty() || index < 0 || index >= m_currentFolderImages.size())
-        return;
-    if (index == m_currentFolderIndex)
-        return;
-
-    stopCurrentLoading();
-    resetCanvas();
-    startImageLoading(m_currentFolderImages[index]);
-    m_currentFolderIndex = index;
+    emit jumpToImageRequested(index);
 }
 
-void MainWindow::startImageLoading(const QString &filePath) {
-    m_currentJobId = QUuid::createUuid().toString();
-    m_currentImagePath = filePath;
-    m_isDownsampled = false;
-    m_originalImageWidth = 0;
-    m_originalImageHeight = 0;
+void MainWindow::onImageLoaded(const ImageViewModel &viewModel) {
+    m_currentViewModel = viewModel;
 
-    stopCurrentLoading();
-
-    // 检查内存缓存
-    if (ImageCache::instance().contains(filePath)) {
-        qDebug() << "Cache hit for:" << QFileInfo(filePath).fileName();
-        CacheEntry entry = ImageCache::instance().getEntry(filePath);
-        if (!entry.pixmap.isNull()) {
-            m_isDownsampled = entry.isDownsampled;
-            m_originalImageWidth = entry.originalWidth;
-            m_originalImageHeight = entry.originalHeight;
-            onImageLoaded(entry.pixmap, filePath, m_currentJobId);
-            // 异步收集信息
-            PerformanceSettings perf = m_settingsManager->performance();
-            m_imageLoader = new ImageLoader(filePath, perf, m_currentJobId);
-            m_loaderThread = new QThread(this);
-            m_imageLoader->moveToThread(m_loaderThread);
-            connect(m_loaderThread, &QThread::started, m_imageLoader, &ImageLoader::load);
-            connect(m_imageLoader, &ImageLoader::infoReady, this, &MainWindow::onInfoReady, Qt::QueuedConnection);
-            connect(m_loaderThread, &QThread::finished, m_loaderThread, &QObject::deleteLater);
-            m_loaderThread->start();
-            return;
-        }
-    }
-
-    qInfo() << "Loading image:" << QFileInfo(filePath).fileName();
-    m_graphicsScene->clear();
-    m_loadingLabel->setVisible(true);
-    m_progressBar->setVisible(true);
-    m_progressBar->setValue(0);
-
-    PerformanceSettings perf = m_settingsManager->performance();
-    m_imageLoader = new ImageLoader(filePath, perf, m_currentJobId);
-    m_loaderThread = new QThread(this);
-    m_imageLoader->moveToThread(m_loaderThread);
-
-    connect(m_loaderThread, &QThread::started, m_imageLoader, &ImageLoader::load, Qt::QueuedConnection);
-    connect(m_imageLoader, &ImageLoader::finished, this, &MainWindow::onImageLoaded, Qt::QueuedConnection);
-    connect(m_imageLoader, &ImageLoader::infoReady, this, &MainWindow::onInfoReady, Qt::QueuedConnection);
-    connect(m_imageLoader, &ImageLoader::progress, this, &MainWindow::onProgress, Qt::QueuedConnection);
-    connect(m_imageLoader, &ImageLoader::loadResultReady, this, &MainWindow::onLoadResultReady, Qt::QueuedConnection);
-    connect(m_loaderThread, &QThread::finished, m_loaderThread, &QObject::deleteLater);
-
-    m_loaderThread->start();
-}
-
-void MainWindow::onLoadResultReady(const LoadResult &result, const QString &jobId) {
-    if (jobId != m_currentJobId)
-        return;
-    if (!result.pixmap.isNull()) {
-        m_isDownsampled = result.isDownsampled;
-        m_originalImageWidth = result.originalWidth;
-        m_originalImageHeight = result.originalHeight;
-        // 写入缓存
-        ImageCache::instance().insert(result.info.fileInfo.value("Path", m_currentImagePath),
-                                      result.pixmap, result.originalWidth, result.originalHeight, result.isDownsampled);
-    }
-}
-
-void MainWindow::onImageLoaded(const QPixmap &pixmap, const QString &filePath, const QString &jobId) {
-    if (jobId != m_currentJobId)
-        return;
-    if (pixmap.isNull()) {
-        qWarning() << "Failed to load image:" << QFileInfo(filePath).fileName();
-        updateRoamStatus();
-        updateTitleBarTitle();
-        updateBottomBarInfo();
+    if (viewModel.isNull || viewModel.pixmap.isNull()) {
+        qWarning() << "Failed to load image:" << QFileInfo(viewModel.filePath).fileName();
         m_loadingLabel->setVisible(false);
         m_progressBar->setVisible(false);
-        stopCurrentLoading();
+        updateTitleBarTitle();
+        updateBottomBarInfo();
         return;
     }
 
     resetCanvas();
     m_graphicsScene->clear();
 
-    m_pixmapItem = new QGraphicsPixmapItem(pixmap);
+    m_pixmapItem = new QGraphicsPixmapItem();
     m_pixmapItem->setTransformationMode(Qt::SmoothTransformation);
     m_graphicsScene->addItem(m_pixmapItem);
-    m_graphicsView->setSceneRect(m_graphicsScene->itemsBoundingRect());
-    if (m_isFitToWindow) {
-        m_graphicsView->fitInView(m_pixmapItem, Qt::KeepAspectRatio);
-    } else {
-        m_graphicsView->resetTransform();
-    }
+
+    m_currentViewState = viewModel.viewState;
+    applyViewState();
+
     m_graphicsView->horizontalScrollBar()->setValue(0);
     m_graphicsView->verticalScrollBar()->setValue(0);
 
-    m_imageWidth = pixmap.width();
-    m_imageHeight = pixmap.height();
-    m_fileSize = QFileInfo(filePath).size();
-
     m_loadingLabel->setVisible(false);
     m_progressBar->setVisible(false);
-    qInfo() << "Image loaded:" << QFileInfo(filePath).fileName();
+    qInfo() << "Image loaded:" << QFileInfo(viewModel.filePath).fileName();
 
-    stopCurrentLoading();
-    initFolderRoaming(filePath);
-    updateRoamStatus();
     updateTitleBarTitle();
     updateBottomBarInfo();
 }
 
-void MainWindow::onInfoReady(const ImageInfo &info, const QString &jobId) {
-    if (jobId != m_currentJobId)
-        return;
-
+void MainWindow::onInfoReady(const ImageInfo &info) {
     m_infoTree->clear();
 
     auto addSection = [this](const QString &title, const QMap<QString, QString> &data) {
@@ -1001,12 +684,44 @@ void MainWindow::onProgress(int value) {
     m_progressBar->setValue(value);
 }
 
-void MainWindow::applySettings() {
-    GeneralSettings g = m_settingsManager->general();
-    PerformanceSettings p = m_settingsManager->performance();
-    AppearanceSettings a = m_settingsManager->appearance();
+void MainWindow::onViewStateChanged(const ViewState &state) {
+    m_currentViewState = state;
+    applyViewState();
+}
 
-    // 恢复窗口几何状态
+void MainWindow::applyViewState() {
+    if (!m_pixmapItem || m_currentViewModel.pixmap.isNull())
+        return;
+
+    QTransform transform;
+    if (m_currentViewState.mirrored)
+        transform.scale(-1, 1);
+    if (m_currentViewState.rotation != 0)
+        transform.rotate(m_currentViewState.rotation);
+
+    if (transform.isIdentity()) {
+        m_pixmapItem->setPixmap(m_currentViewModel.pixmap);
+    } else {
+        m_pixmapItem->setPixmap(m_currentViewModel.pixmap.transformed(transform, Qt::SmoothTransformation));
+    }
+
+    m_graphicsView->resetTransform();
+    m_graphicsView->setSceneRect(m_graphicsScene->itemsBoundingRect());
+
+    if (m_currentViewState.isFitToWindow) {
+        m_graphicsView->fitInView(m_pixmapItem, Qt::KeepAspectRatio);
+    } else {
+        m_graphicsView->scale(m_currentViewState.scaleFactor, m_currentViewState.scaleFactor);
+    }
+
+    updateBottomBarInfo();
+}
+
+void MainWindow::onSettingsApplied(const GeneralSettings &g, const PerformanceSettings &p, const AppearanceSettings &a) {
+    m_generalSettings = g;
+    m_performanceSettings = p;
+    m_appearanceSettings = a;
+
     if (!g.windowGeometry.isEmpty()) {
         restoreGeometry(g.windowGeometry);
     } else if (g.defaultWindowState == "maximized") {
@@ -1030,7 +745,7 @@ void MainWindow::applySettings() {
 }
 
 void MainWindow::applyStyleSheet() {
-    const AppearanceSettings a = m_settingsManager->appearance();
+    const AppearanceSettings a = m_appearanceSettings;
     const Theme t = ThemeManager::instance().currentTheme();
     const auto c = [](const QColor &color) { return color.name(QColor::HexArgb); };
 
@@ -1128,7 +843,7 @@ void MainWindow::refreshIcons() {
     if (m_nextBtn)
         m_nextBtn->setIcon(themedIcon("chevron-right"));
     if (m_fitBtn) {
-        if (m_isFitToWindow) {
+        if (m_currentViewState.isFitToWindow) {
             m_fitBtn->setIcon(themedIcon("actual-size"));
             m_fitBtn->setToolTip(tr("Actual Size"));
         } else {
@@ -1171,16 +886,16 @@ static QString elideFileName(const QString &fileName, int maxLength) {
 }
 
 void MainWindow::updateTitleBarTitle() {
-    if (m_currentImagePath.isEmpty()) {
+    if (m_currentViewModel.filePath.isEmpty()) {
         m_titleLabel->setText(tr("InfiniteSight"));
     } else {
-        QString fileName = QFileInfo(m_currentImagePath).fileName();
+        QString fileName = QFileInfo(m_currentViewModel.filePath).fileName();
         m_titleLabel->setText(elideFileName(fileName, 50));
     }
 }
 
 void MainWindow::updateBottomBarInfo() {
-    if (m_currentImagePath.isEmpty()) {
+    if (m_currentViewModel.filePath.isEmpty()) {
         if (m_fileInfoLabel)
             m_fileInfoLabel->setText("");
         if (m_fileSizeLabel)
@@ -1194,29 +909,30 @@ void MainWindow::updateBottomBarInfo() {
         return;
     }
 
-    QFileInfo fi(m_currentImagePath);
+    QFileInfo fi(m_currentViewModel.filePath);
     QString ext = fi.suffix().toUpper();
     QString sizeStr;
-    if (m_fileSize < 1024) {
-        sizeStr = QString("%1B").arg(m_fileSize);
-    } else if (m_fileSize < 1024 * 1024) {
-        sizeStr = QString("%1K").arg(m_fileSize / 1024.0, 0, 'f', 1);
+    qint64 fileSize = m_currentViewModel.fileSize;
+    if (fileSize < 1024) {
+        sizeStr = QString("%1B").arg(fileSize);
+    } else if (fileSize < 1024 * 1024) {
+        sizeStr = QString("%1K").arg(fileSize / 1024.0, 0, 'f', 1);
     } else {
-        sizeStr = QString("%1M").arg(m_fileSize / (1024.0 * 1024.0), 0, 'f', 2);
+        sizeStr = QString("%1M").arg(fileSize / (1024.0 * 1024.0), 0, 'f', 2);
     }
 
     if (m_fileSizeLabel)
         m_fileSizeLabel->setText(sizeStr);
     if (m_fileDimensionLabel)
-        m_fileDimensionLabel->setText(QString("%1x%2").arg(m_imageWidth).arg(m_imageHeight));
+        m_fileDimensionLabel->setText(QString("%1x%2").arg(m_currentViewModel.imageWidth).arg(m_currentViewModel.imageHeight));
     if (m_fileFormatLabel)
         m_fileFormatLabel->setText(ext);
 
-    int curr = m_currentFolderIndex >= 0 ? m_currentFolderIndex + 1 : 1;
-    int total = m_currentFolderImages.isEmpty() ? 1 : m_currentFolderImages.size();
+    int curr = m_currentViewModel.currentIndex >= 0 ? m_currentViewModel.currentIndex + 1 : 1;
+    int total = m_currentViewModel.total > 0 ? m_currentViewModel.total : 1;
     m_pageLabel->setText(QString("%1/%2").arg(curr).arg(total));
 
-    int zoomPercent = qRound(m_scaleFactor * 100);
+    int zoomPercent = qRound(m_currentViewState.scaleFactor * 100);
     m_zoomCombo->setText(QString("%1%").arg(zoomPercent));
 }
 
@@ -1321,9 +1037,9 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 
     if (obj == m_pageLabel && event->type() == QEvent::MouseButtonRelease) {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        if (me->button() == Qt::LeftButton && !m_currentFolderImages.isEmpty()) {
+        if (me->button() == Qt::LeftButton && m_currentViewModel.total > 0) {
             m_pageLabel->setVisible(false);
-            m_pageEdit->setText(QString::number(m_currentFolderIndex + 1));
+            m_pageEdit->setText(QString::number(m_currentViewModel.currentIndex + 1));
             m_pageEdit->setVisible(true);
             m_pageEdit->setFocus();
             m_pageEdit->selectAll();
@@ -1524,81 +1240,13 @@ void MainWindow::onThemeChanged() {
     refreshIcons();
 }
 
-void MainWindow::stopCurrentLoading() {
-    // 先断开所有信号，防止 finished 信号触发 onImageLoaded 等槽函数
-    if (m_imageLoader) {
-        m_imageLoader->disconnect();
-        m_imageLoader->cancel();
-    }
-
-    if (m_loaderThread && m_loaderThread->isRunning()) {
-        m_loaderThread->quit();
-        if (!m_loaderThread->wait(2000)) {
-            m_loaderThread->terminate();
-            m_loaderThread->wait();
-        }
-    }
-
-    // 清理对象。注意：finished 信号可能已连接 deleteLater，
-    // 所以这里只 delete 未启动过的对象，已启动的由 finished 信号处理
-    if (m_imageLoader) {
-        m_imageLoader->deleteLater();
-        m_imageLoader = nullptr;
-    }
-    if (m_loaderThread) {
-        m_loaderThread->deleteLater();
-        m_loaderThread = nullptr;
-    }
-}
-
 void MainWindow::resetCanvas() {
     m_graphicsView->resetTransform();
-    m_scaleFactor = 1.0;
     m_graphicsView->horizontalScrollBar()->setValue(0);
     m_graphicsView->verticalScrollBar()->setValue(0);
     m_graphicsScene->clearSelection();
     m_graphicsView->centerOn(0, 0);
     m_graphicsView->setSceneRect(m_graphicsScene->itemsBoundingRect());
-}
-
-void MainWindow::initFolderRoaming(const QString &imagePath) {
-    QString folder = QFileInfo(imagePath).absolutePath();
-    QDir dir(folder);
-    if (!dir.exists())
-        return;
-
-    QStringList filters;
-    filters << "*.png" << "*.jpg" << "*.jpeg" << "*.bmp" << "*.gif" << "*.tiff" << "*.tif" << "*.webp";
-    dir.setNameFilters(filters);
-    dir.setFilter(QDir::Files);
-
-    QStringList files = dir.entryList();
-    files.sort(Qt::CaseInsensitive);
-
-    m_currentFolderImages.clear();
-    for (const QString &f : files) {
-        m_currentFolderImages.append(dir.absoluteFilePath(f));
-    }
-
-    if (m_currentFolderImages.isEmpty()) {
-        m_currentFolderIndex = -1;
-        return;
-    }
-
-    m_currentFolderIndex = m_currentFolderImages.indexOf(imagePath);
-    if (m_currentFolderIndex < 0)
-        m_currentFolderIndex = 0;
-}
-
-void MainWindow::updateRoamStatus() {
-    if (m_currentFolderImages.isEmpty() || m_currentFolderIndex < 0) {
-        return;
-    }
-
-    QString folder = QFileInfo(m_currentImagePath).dir().dirName();
-    int curr = m_currentFolderIndex + 1;
-    int total = m_currentFolderImages.size();
-    qDebug() << "Navigation:" << curr << "of" << total << "in folder" << folder;
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
@@ -1609,38 +1257,22 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
     }
 }
 
-void MainWindow::handleFileDrop(const QStringList &paths) {
-    QStringList exts = {"png", "jpg", "jpeg", "bmp", "gif", "tiff", "tif", "webp"};
-
-    for (const QString &path : paths) {
+void MainWindow::dropEvent(QDropEvent *event) {
+    const QList<QUrl> urls = event->mimeData()->urls();
+    for (const QUrl &url : urls) {
+        QString path = url.toLocalFile();
         QString ext = QFileInfo(path).suffix().toLower();
-        if (exts.contains(ext)) {
-            stopCurrentLoading();
-            resetCanvas();
-            startImageLoading(path);
-            break;
+        if (AppConstants::supportedImageExtensions().contains(ext)) {
+            emit imageOpenRequested(path);
+            event->acceptProposedAction();
+            return;
         }
     }
-}
-
-void MainWindow::dropEvent(QDropEvent *event) {
-    QList<QUrl> urls = event->mimeData()->urls();
-    QStringList paths;
-    for (const QUrl &url : urls) {
-        paths.append(url.toLocalFile());
-    }
-    handleFileDrop(paths);
+    event->ignore();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    stopCurrentLoading();
-
-    // 保存窗口几何状态
-    GeneralSettings g = m_settingsManager->general();
-    g.windowGeometry = saveGeometry();
-    m_settingsManager->setGeneral(g);
-    m_settingsManager->save();
-
+    emit windowCloseRequested();
     event->accept();
 }
 
@@ -1665,12 +1297,12 @@ void MainWindow::showMenu() {
     QMenu *themeMenu = menu.addMenu(tr("Change Theme"));
     QAction *darkAction = themeMenu->addAction(tr("Professional Dark"));
     darkAction->setCheckable(true);
-    darkAction->setChecked(m_settingsManager->appearance().theme == "dark");
+    darkAction->setChecked(m_appearanceSettings.theme == "dark");
     connect(darkAction, &QAction::triggered, this, [this]() { switchTheme("dark"); });
 
     QAction *lightAction = themeMenu->addAction(tr("Classic White"));
     lightAction->setCheckable(true);
-    lightAction->setChecked(m_settingsManager->appearance().theme == "light");
+    lightAction->setChecked(m_appearanceSettings.theme == "light");
     connect(lightAction, &QAction::triggered, this, [this]() { switchTheme("light"); });
 
     menu.addAction(tr("Settings"), QKeySequence("F10"), this, &MainWindow::openSettings);

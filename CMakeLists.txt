@@ -17,26 +17,38 @@ find_package(VIPS QUIET)
 
 set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsWindow.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ThemeManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageLoader.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageCache.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ExifParser.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/MainWindow.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/SettingsWindow.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/ThemeManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/ZoomableGraphicsView.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/manager/AppController.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/manager/ImageNavigator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/manager/LoadCoordinator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/manager/ViewStateManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/SettingsManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/ImageLoader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/ImageCache.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/Logger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/ExifParser.cpp
 )
 
 set(HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsWindow.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Theme.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ThemeManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageLoader.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ImageCache.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ExifParser.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/MainWindow.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/SettingsWindow.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/Theme.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/ThemeManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/ZoomableGraphicsView.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/manager/AppController.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/manager/ImageNavigator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/manager/LoadCoordinator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/manager/ViewStateManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/SettingsManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/ImageLoader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/ImageCache.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/Logger.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/ExifParser.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/ImageModel.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/AppConstants.h
 )
 
 set(RESOURCES
@@ -44,6 +56,10 @@ set(RESOURCES
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${RESOURCES})
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core

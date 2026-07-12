@@ -2,8 +2,9 @@
 #include <vips/vips8>
 #endif
 
-#include "Logger.h"
-#include "MainWindow.h"
+#include "core/Logger.h"
+#include "manager/AppController.h"
+#include "ui/MainWindow.h"
 #include <QApplication>
 #include <QSurfaceFormat>
 
@@ -17,22 +18,9 @@ int main(int argc, char *argv[]) {
     qInfo() << "libvips initialized successfully";
 
     // 调整 vips 操作缓存，减少内存占用
-    vips_cache_set_max_mem(500 * 1024 * 1024);  // 500MB
-    vips_cache_set_max(100);                     // 最多缓存 100 个操作
-    vips_cache_set_max_files(10);               // 最多打开 10 个文件
-
-    // 如果传入了测试图片路径，进行测试加载
-    if (argc > 1) {
-        QString testPath = QString::fromLocal8Bit(argv[1]);
-        qInfo() << "Testing vips image load:" << testPath;
-
-        try {
-            vips::VImage image = vips::VImage::thumbnail(testPath.toUtf8().constData(), 1024);
-            qInfo() << "Vips test successful - Image size:" << image.width() << "x" << image.height();
-        } catch (const vips::VError &e) {
-            qCritical() << "Vips test failed:" << e.what();
-        }
-    }
+    vips_cache_set_max_mem(500 * 1024 * 1024); // 500MB
+    vips_cache_set_max(100);                   // 最多缓存 100 个操作
+    vips_cache_set_max_files(10);              // 最多打开 10 个文件
 #endif
 
     QSurfaceFormat fmt;
@@ -49,6 +37,24 @@ int main(int argc, char *argv[]) {
     qInfo() << "Application started";
 
     MainWindow window;
+    AppController controller(&window);
+
+    // 如果命令行传入图片路径，启动后打开
+    if (argc > 1) {
+        QString testPath = QString::fromLocal8Bit(argv[1]);
+        QMetaObject::invokeMethod(&window, [testPath, &window]() { emit window.imageOpenRequested(testPath); }, Qt::QueuedConnection);
+
+#ifdef HAS_LIBVIPS
+        qInfo() << "Testing vips image load:" << testPath;
+        try {
+            vips::VImage image = vips::VImage::thumbnail(testPath.toUtf8().constData(), 1024);
+            qInfo() << "Vips test successful - Image size:" << image.width() << "x" << image.height();
+        } catch (const vips::VError &e) {
+            qCritical() << "Vips test failed:" << e.what();
+        }
+#endif
+    }
+
     window.show();
 
     int result = app.exec();

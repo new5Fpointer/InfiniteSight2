@@ -4,7 +4,7 @@
 
 #include "ExifParser.h"
 #include "ImageLoader.h"
-#include "SettingsManager.h"
+#include "common/ImageModel.h"
 #include <QDateTime>
 #include <QDebug>
 #include <QFileInfo>
@@ -67,14 +67,14 @@ void ImageLoader::loadStandard() {
 
     if (!loaded || pixmap.isNull()) {
         qWarning() << "Failed to load image:" << QFileInfo(m_filePath).fileName();
-        emit finished(QPixmap(), QString("Error: Failed to load image"), m_jobId);
+        emit finished(QPixmap(), QStringLiteral("Error: Failed to load image"), m_jobId);
         return;
     }
 
     emit progress(50);
 
     ImageInfo info = collectImageInfo();
-    info.imageInfo["Load Strategy"] = "Standard (Qt)";
+    info.imageInfo[QStringLiteral("Load Strategy")] = QStringLiteral("Standard (Qt)");
 
     if (m_canceled)
         return;
@@ -213,8 +213,8 @@ void ImageLoader::loadVipsFull() {
         QPixmap pixmap = QPixmap::fromImage(qimg);
 
         ImageInfo info = collectVipsImageInfo();
-        info.imageInfo["Load Strategy"] = "VipsFull";
-        info.imageInfo["Dimensions"] = QString("%1 x %2").arg(outWidth).arg(outHeight);
+        info.imageInfo[QStringLiteral("Load Strategy")] = QStringLiteral("VipsFull");
+        info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2").arg(outWidth).arg(outHeight);
 
         emit finished(pixmap, m_filePath, m_jobId);
         emit infoReady(info, m_jobId);
@@ -244,10 +244,10 @@ ImageInfo ImageLoader::collectImageInfo() {
     ImageInfo info;
     QFileInfo fi(m_filePath);
 
-    info.fileInfo["File Name"] = fi.fileName();
-    info.fileInfo["Path"] = fi.absoluteFilePath();
-    info.fileInfo["Size"] = QString("%1 KB").arg(fi.size() / 1024.0, 0, 'f', 2);
-    info.fileInfo["Modified"] = fi.lastModified().toString("yyyy-MM-dd hh:mm:ss");
+    info.fileInfo[QStringLiteral("File Name")] = fi.fileName();
+    info.fileInfo[QStringLiteral("Path")] = fi.absoluteFilePath();
+    info.fileInfo[QStringLiteral("Size")] = QStringLiteral("%1 KB").arg(fi.size() / 1024.0, 0, 'f', 2);
+    info.fileInfo[QStringLiteral("Modified")] = fi.lastModified().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss"));
 
     if (m_perfSettings.skipExif) {
         return info;
@@ -255,8 +255,8 @@ ImageInfo ImageLoader::collectImageInfo() {
 
     QImageReader reader(m_filePath);
     if (reader.canRead()) {
-        info.imageInfo["Format"] = reader.format().toUpper();
-        info.imageInfo["Dimensions"] = QString("%1 x %2 pixels")
+        info.imageInfo[QStringLiteral("Format")] = reader.format().toUpper();
+        info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2 pixels")
                                            .arg(reader.size().width())
                                            .arg(reader.size().height());
     }
@@ -275,22 +275,22 @@ ImageInfo ImageLoader::collectVipsImageInfo() {
     ImageInfo info;
     QFileInfo fi(m_filePath);
 
-    info.fileInfo["File Name"] = fi.fileName();
-    info.fileInfo["Path"] = fi.absoluteFilePath();
+    info.fileInfo[QStringLiteral("File Name")] = fi.fileName();
+    info.fileInfo[QStringLiteral("Path")] = fi.absoluteFilePath();
 
     QString sizeStr;
     qint64 size = fi.size();
     if (size < 1024) {
-        sizeStr = QString("%1 B").arg(size);
+        sizeStr = QStringLiteral("%1 B").arg(size);
     } else if (size < 1024 * 1024) {
-        sizeStr = QString("%1 KB").arg(size / 1024.0, 0, 'f', 2);
+        sizeStr = QStringLiteral("%1 KB").arg(size / 1024.0, 0, 'f', 2);
     } else if (size < 1024LL * 1024 * 1024) {
-        sizeStr = QString("%1 MB").arg(size / (1024.0 * 1024.0), 0, 'f', 2);
+        sizeStr = QStringLiteral("%1 MB").arg(size / (1024.0 * 1024.0), 0, 'f', 2);
     } else {
-        sizeStr = QString("%1 GB").arg(size / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+        sizeStr = QStringLiteral("%1 GB").arg(size / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
     }
-    info.fileInfo["Size"] = sizeStr;
-    info.fileInfo["Modified"] = fi.lastModified().toString("yyyy-MM-dd hh:mm:ss");
+    info.fileInfo[QStringLiteral("Size")] = sizeStr;
+    info.fileInfo[QStringLiteral("Modified")] = fi.lastModified().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss"));
 
     if (m_perfSettings.skipExif) {
         return info;
@@ -301,18 +301,18 @@ ImageInfo ImageLoader::collectVipsImageInfo() {
         std::string utf8Path = m_filePath.toUtf8().toStdString();
         // 使用 thumbnail 获取信息，避免加载全图
         vips::VImage image = vips::VImage::thumbnail(utf8Path.c_str(), 64);
-        info.imageInfo["Format"] = QString::fromUtf8(vips_foreign_find_load(utf8Path.c_str()));
-        info.imageInfo["Dimensions"] = QString("%1 x %2 pixels")
+        info.imageInfo[QStringLiteral("Format")] = QString::fromUtf8(vips_foreign_find_load(utf8Path.c_str()));
+        info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2 pixels")
                                            .arg(image.width())
                                            .arg(image.height());
-        info.imageInfo["Bands"] = QString::number(image.bands());
-        info.imageInfo["Interpretation"] = QString::fromUtf8(vips_enum_nick(VIPS_TYPE_INTERPRETATION, image.interpretation()));
+        info.imageInfo[QStringLiteral("Bands")] = QString::number(image.bands());
+        info.imageInfo[QStringLiteral("Interpretation")] = QString::fromUtf8(vips_enum_nick(VIPS_TYPE_INTERPRETATION, image.interpretation()));
     } catch (...) {
         // 回退到 QImageReader
         QImageReader reader(m_filePath);
         if (reader.canRead()) {
-            info.imageInfo["Format"] = reader.format().toUpper();
-            info.imageInfo["Dimensions"] = QString("%1 x %2 pixels")
+            info.imageInfo[QStringLiteral("Format")] = reader.format().toUpper();
+            info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2 pixels")
                                                .arg(reader.size().width())
                                                .arg(reader.size().height());
         }
@@ -320,8 +320,8 @@ ImageInfo ImageLoader::collectVipsImageInfo() {
 #else
     QImageReader reader(m_filePath);
     if (reader.canRead()) {
-        info.imageInfo["Format"] = reader.format().toUpper();
-        info.imageInfo["Dimensions"] = QString("%1 x %2 pixels")
+        info.imageInfo[QStringLiteral("Format")] = reader.format().toUpper();
+        info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2 pixels")
                                            .arg(reader.size().width())
                                            .arg(reader.size().height());
     }

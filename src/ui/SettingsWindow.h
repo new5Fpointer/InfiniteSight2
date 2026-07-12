@@ -1,12 +1,12 @@
 #pragma once
 
-#include <QDialog>
+#include "core/SettingsManager.h"
 #include <QCheckBox>
 #include <QComboBox>
-#include <QFormLayout>
+#include <QDialog>
 #include <QDialogButtonBox>
+#include <QFormLayout>
 #include <QGroupBox>
-#include "SettingsManager.h"
 
 class SettingsWindow : public QDialog {
     Q_OBJECT
