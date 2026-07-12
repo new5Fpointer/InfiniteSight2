@@ -715,6 +715,7 @@ void MainWindow::applyViewState() {
     }
 
     updateBottomBarInfo();
+    refreshIcons();
 }
 
 void MainWindow::onSettingsApplied(const GeneralSettings &g, const PerformanceSettings &p, const AppearanceSettings &a) {
