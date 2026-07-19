@@ -140,7 +140,7 @@ void AppController::onCurrentPathChanged(const QString &path, const QStringList 
     Q_UNUSED(path)
     m_currentFolderImages = folderImages;
     m_currentIndex = currentIndex;
-    m_viewStateManager->reset();
+    m_viewStateManager->resetSilent();
     loadCurrentImage();
 }
 

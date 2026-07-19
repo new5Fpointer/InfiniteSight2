@@ -11,6 +11,7 @@ public:
 
     ViewState viewState() const;
     void reset();
+    void resetSilent();
 
     void zoomIn();
     void zoomOut();

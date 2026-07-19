@@ -16,6 +16,13 @@ void ViewStateManager::reset() {
     emit viewStateChanged(m_state);
 }
 
+void ViewStateManager::resetSilent() {
+    m_state.scaleFactor = 1.0;
+    m_state.isFitToWindow = true;
+    m_state.rotation = 0;
+    m_state.mirrored = false;
+}
+
 void ViewStateManager::zoomIn() {
     m_state.scaleFactor *= 1.2;
     m_state.isFitToWindow = false;
