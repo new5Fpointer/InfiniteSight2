@@ -22,31 +22,14 @@
 #include <QTimer>
 #include <QTreeWidget>
 
+class AppController;
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
-signals:
-    void imageOpenRequested(const QString &path);
-    void navigateNextRequested();
-    void navigatePreviousRequested();
-    void jumpToImageRequested(int index);
-    void zoomInRequested();
-    void zoomOutRequested();
-    void actualSizeRequested();
-    void fitToWindowRequested();
-    void toggleFitActualSizeRequested();
-    void rotateRequested(int angle);
-    void mirrorRequested();
-    void deleteImageRequested();
-    void infoPanelVisibilityChanged(bool visible);
-    void themeChangeRequested(const QString &theme);
-    void openSettingsRequested();
-    void windowCloseRequested();
-    void actualScaleFactorChanged(double scaleFactor);
 
 public slots:
     void onImageLoaded(const ImageViewModel &viewModel);
@@ -58,18 +41,6 @@ public slots:
 private slots:
     void openImage();
     void toggleInfoPanel(bool visible);
-    void openSettings();
-    void switchTheme(const QString &theme);
-
-    void zoomIn();
-    void zoomOut();
-    void actualSize();
-    void fitToWindow();
-    void toggleFitActualSize();
-    void rotateImage(int angle);
-    void mirrorImage();
-    void navigateFolderImage(int direction);
-    void jumpToImage(int index);
 
     void onMinimize();
     void onMaximize();
@@ -187,4 +158,7 @@ private:
     AppearanceSettings m_appearanceSettings;
 
     bool m_isFileDialogOpen = false;
+
+    friend class AppController;
+    AppController *m_controller = nullptr;
 };

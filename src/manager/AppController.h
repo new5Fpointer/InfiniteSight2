@@ -16,30 +16,28 @@ public:
     explicit AppController(MainWindow *mainWindow, QObject *parent = nullptr);
     ~AppController();
 
+    // 用户操作入口（由 MainWindow 直接调用）
+    void openImage(const QString &path);
+    void navigateNext();
+    void navigatePrevious();
+    void jumpToImage(int index);
+    void zoomIn();
+    void zoomOut();
+    void actualSize();
+    void fitToWindow();
+    void toggleFitActualSize();
+    void rotateImage(int angle);
+    void mirrorImage();
+    void deleteImage();
+    void setInfoPanelVisible(bool visible);
+    void switchTheme(const QString &theme);
+    void openSettingsDialog();
+    void closeWindow();
+    void setActualScaleFactor(double scale);
+
     void applySettings();
 
-signals:
-    void settingsApplied(const GeneralSettings &g, const PerformanceSettings &p, const AppearanceSettings &a);
-
 private slots:
-    // 来自 MainWindow 的用户意图
-    void onImageOpenRequested(const QString &path);
-    void onNavigateNextRequested();
-    void onNavigatePreviousRequested();
-    void onJumpToImageRequested(int index);
-    void onZoomInRequested();
-    void onZoomOutRequested();
-    void onActualSizeRequested();
-    void onFitToWindowRequested();
-    void onToggleFitActualSizeRequested();
-    void onRotateRequested(int angle);
-    void onMirrorRequested();
-    void onDeleteImageRequested();
-    void onInfoPanelVisibilityChanged(bool visible);
-    void onThemeChangeRequested(const QString &theme);
-    void onOpenSettingsRequested();
-    void onWindowCloseRequested();
-
     // 来自内部模块
     void onCurrentPathChanged(const QString &path, const QStringList &folderImages, int currentIndex);
     void onImageLoaded(const ImageViewModel &viewModel);

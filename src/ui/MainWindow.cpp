@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "manager/AppController.h"
 #include "SettingsWindow.h"
 #include "ThemeManager.h"
 #include "common/AppConstants.h"
@@ -76,8 +77,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_graphicsView, &ZoomableGraphicsView::filesDropped,
             this, [this](const QStringList &paths) {
-                if (!paths.isEmpty())
-                    emit imageOpenRequested(paths.first());
+                if (!paths.isEmpty() && m_controller)
+                    m_controller->openImage(paths.first());
             });
 
     connect(m_graphicsView, &ZoomableGraphicsView::zoomLevelChanged,
@@ -264,7 +265,9 @@ void MainWindow::createBottomBar() {
     centerLayout->setSpacing(6);
 
     m_prevBtn = createBottomBtn("chevron-left");
-    connect(m_prevBtn, &QPushButton::clicked, this, [this]() { navigateFolderImage(-1); });
+    connect(m_prevBtn, &QPushButton::clicked, this, [this]() {
+        if (m_controller) m_controller->navigatePrevious();
+    });
     centerLayout->addWidget(m_prevBtn);
 
     QWidget *pageContainer = new QWidget(m_centerContainer);
@@ -297,8 +300,8 @@ void MainWindow::createBottomBar() {
             return;
         bool ok;
         int page = text.toInt(&ok);
-        if (ok && page > 0) {
-            jumpToImage(page - 1);
+        if (ok && page > 0 && m_controller) {
+            m_controller->jumpToImage(page - 1);
         }
     });
     connect(m_pageEdit, &QLineEdit::returnPressed, this, [this]() {
@@ -310,39 +313,53 @@ void MainWindow::createBottomBar() {
     centerLayout->addWidget(pageContainer);
 
     m_nextBtn = createBottomBtn("chevron-right");
-    connect(m_nextBtn, &QPushButton::clicked, this, [this]() { navigateFolderImage(1); });
+    connect(m_nextBtn, &QPushButton::clicked, this, [this]() {
+        if (m_controller) m_controller->navigateNext();
+    });
     centerLayout->addWidget(m_nextBtn);
 
     centerLayout->addSpacing(16);
 
     m_fitBtn = createBottomBtn("fit-screen");
     m_fitBtn->setToolTip(tr("Fit to Window"));
-    connect(m_fitBtn, &QPushButton::clicked, this, &MainWindow::toggleFitActualSize);
+    connect(m_fitBtn, &QPushButton::clicked, this, [this]() {
+        if (m_controller) m_controller->toggleFitActualSize();
+    });
     centerLayout->addWidget(m_fitBtn);
 
     m_zoomCombo = createBottomBtn("", 56);
     m_zoomCombo->setText("100%");
-    connect(m_zoomCombo, &QPushButton::clicked, this, &MainWindow::actualSize);
+    connect(m_zoomCombo, &QPushButton::clicked, this, [this]() {
+        if (m_controller) m_controller->actualSize();
+    });
     centerLayout->addWidget(m_zoomCombo);
 
     m_zoomOutBtn = createBottomBtn("zoom-out");
     m_zoomOutBtn->setToolTip(tr("Zoom Out"));
-    connect(m_zoomOutBtn, &QPushButton::clicked, this, &MainWindow::zoomOut);
+    connect(m_zoomOutBtn, &QPushButton::clicked, this, [this]() {
+        if (m_controller) m_controller->zoomOut();
+    });
     centerLayout->addWidget(m_zoomOutBtn);
 
     m_zoomInBtn = createBottomBtn("zoom-in");
     m_zoomInBtn->setToolTip(tr("Zoom In"));
-    connect(m_zoomInBtn, &QPushButton::clicked, this, &MainWindow::zoomIn);
+    connect(m_zoomInBtn, &QPushButton::clicked, this, [this]() {
+        if (m_controller) m_controller->zoomIn();
+    });
     centerLayout->addWidget(m_zoomInBtn);
 
     m_rotateLeftBtn = createBottomBtn("rotate-left");
     m_rotateLeftBtn->setToolTip(tr("Rotate left") + " (Ctrl+L)");
-    connect(m_rotateLeftBtn, &QPushButton::clicked, this, [this]() { rotateImage(-90); });
+    connect(m_rotateLeftBtn, &QPushButton::clicked, this, [this]() {
+        if (m_controller) m_controller->rotateImage(-90);
+    });
     centerLayout->addWidget(m_rotateLeftBtn);
 
     m_rotateRightBtn = createBottomBtn("rotate-right");
     m_rotateRightBtn->setToolTip(tr("Rotate right") + " (Ctrl+R)");
-    connect(m_rotateRightBtn, &QPushButton::clicked, this, [this]() { rotateImage(90); });
+    connect(m_rotateRightBtn, &QPushButton::clicked, this, [this]() {
+        if (m_controller) m_controller->rotateImage(90);
+    });
     centerLayout->addWidget(m_rotateRightBtn);
 
     m_copyBtn = createBottomBtn("copy");
@@ -358,7 +375,7 @@ void MainWindow::createBottomBar() {
     m_deleteBtn = createBottomBtn("delete");
     m_deleteBtn->setToolTip(tr("Delete Image"));
     connect(m_deleteBtn, &QPushButton::clicked, this, [this]() {
-        emit deleteImageRequested();
+        if (m_controller) m_controller->deleteImage();
     });
     centerLayout->addWidget(m_deleteBtn);
 
@@ -534,13 +551,17 @@ void MainWindow::createMenus() {
     m_darkAction = new QAction(tr("Dark"), this);
     m_darkAction->setCheckable(true);
     m_darkAction->setActionGroup(themeGroup);
-    connect(m_darkAction, &QAction::triggered, this, [this]() { switchTheme("dark"); });
+    connect(m_darkAction, &QAction::triggered, this, [this]() {
+        if (m_controller) m_controller->switchTheme("dark");
+    });
     themeMenu->addAction(m_darkAction);
 
     m_lightAction = new QAction(tr("Light"), this);
     m_lightAction->setCheckable(true);
     m_lightAction->setActionGroup(themeGroup);
-    connect(m_lightAction, &QAction::triggered, this, [this]() { switchTheme("light"); });
+    connect(m_lightAction, &QAction::triggered, this, [this]() {
+        if (m_controller) m_controller->switchTheme("light");
+    });
     themeMenu->addAction(m_lightAction);
 
     m_darkAction->setChecked(m_appearanceSettings.theme == "dark");
@@ -548,7 +569,9 @@ void MainWindow::createMenus() {
 
     m_settingsMenu = menuBar->addMenu(tr("&Settings"));
     m_settingsAction = new QAction(tr("Application Settings"), this);
-    connect(m_settingsAction, &QAction::triggered, this, &MainWindow::openSettings);
+    connect(m_settingsAction, &QAction::triggered, this, [this]() {
+        if (m_controller) m_controller->openSettingsDialog();
+    });
     m_settingsMenu->addAction(m_settingsAction);
 
     setMenuBar(menuBar);
@@ -563,61 +586,14 @@ void MainWindow::openImage() {
                                                     AppConstants::imageFilterString());
     m_isFileDialogOpen = false;
 
-    if (!filePath.isEmpty()) {
-        emit imageOpenRequested(filePath);
+    if (!filePath.isEmpty() && m_controller) {
+        m_controller->openImage(filePath);
     }
 }
 
 void MainWindow::toggleInfoPanel(bool visible) {
     m_infoDock->setVisible(visible);
-    emit infoPanelVisibilityChanged(visible);
-}
-
-void MainWindow::openSettings() {
-    emit openSettingsRequested();
-}
-
-void MainWindow::switchTheme(const QString &theme) {
-    emit themeChangeRequested(theme);
-}
-
-void MainWindow::zoomIn() {
-    emit zoomInRequested();
-}
-
-void MainWindow::zoomOut() {
-    emit zoomOutRequested();
-}
-
-void MainWindow::actualSize() {
-    emit actualSizeRequested();
-}
-
-void MainWindow::fitToWindow() {
-    emit fitToWindowRequested();
-}
-
-void MainWindow::toggleFitActualSize() {
-    emit toggleFitActualSizeRequested();
-}
-
-void MainWindow::rotateImage(int angle) {
-    emit rotateRequested(angle);
-}
-
-void MainWindow::mirrorImage() {
-    emit mirrorRequested();
-}
-
-void MainWindow::navigateFolderImage(int direction) {
-    if (direction > 0)
-        emit navigateNextRequested();
-    else
-        emit navigatePreviousRequested();
-}
-
-void MainWindow::jumpToImage(int index) {
-    emit jumpToImageRequested(index);
+    if (m_controller) m_controller->setInfoPanelVisible(visible);
 }
 
 void MainWindow::onImageLoaded(const ImageViewModel &viewModel) {
@@ -719,7 +695,7 @@ void MainWindow::applyViewState() {
         m_graphicsView->fitInView(m_pixmapItem, Qt::KeepAspectRatio);
         double actualScale = m_graphicsView->transform().m11();
         m_currentViewState.scaleFactor = actualScale;
-        emit actualScaleFactorChanged(actualScale);
+        if (m_controller) m_controller->setActualScaleFactor(actualScale);
     } else {
         m_graphicsView->scale(m_currentViewState.scaleFactor, m_currentViewState.scaleFactor);
     }
@@ -1036,11 +1012,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     if ((obj == m_graphicsView || obj == m_graphicsView->viewport()) && event->type() == QEvent::KeyPress) {
         QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
         if (keyEvent->key() == Qt::Key_Left) {
-            navigateFolderImage(-1);
+            if (m_controller) m_controller->navigatePrevious();
             keyEvent->accept();
             return true;
         } else if (keyEvent->key() == Qt::Key_Right) {
-            navigateFolderImage(1);
+            if (m_controller) m_controller->navigateNext();
             keyEvent->accept();
             return true;
         }
@@ -1290,7 +1266,7 @@ void MainWindow::dropEvent(QDropEvent *event) {
         QString path = url.toLocalFile();
         QString ext = QFileInfo(path).suffix().toLower();
         if (AppConstants::supportedImageExtensions().contains(ext)) {
-            emit imageOpenRequested(path);
+            if (m_controller) m_controller->openImage(path);
             event->acceptProposedAction();
             return;
         }
@@ -1299,15 +1275,15 @@ void MainWindow::dropEvent(QDropEvent *event) {
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    emit windowCloseRequested();
+    if (m_controller) m_controller->closeWindow();
     event->accept();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Left) {
-        navigateFolderImage(-1);
+        if (m_controller) m_controller->navigatePrevious();
     } else if (event->key() == Qt::Key_Right) {
-        navigateFolderImage(1);
+        if (m_controller) m_controller->navigateNext();
     } else if (event->key() == Qt::Key_F11) {
         toggleFullscreen();
     } else {
@@ -1325,14 +1301,20 @@ void MainWindow::showMenu() {
     QAction *darkAction = themeMenu->addAction(tr("Professional Dark"));
     darkAction->setCheckable(true);
     darkAction->setChecked(m_appearanceSettings.theme == "dark");
-    connect(darkAction, &QAction::triggered, this, [this]() { switchTheme("dark"); });
+    connect(darkAction, &QAction::triggered, this, [this]() {
+        if (m_controller) m_controller->switchTheme("dark");
+    });
 
     QAction *lightAction = themeMenu->addAction(tr("Classic White"));
     lightAction->setCheckable(true);
     lightAction->setChecked(m_appearanceSettings.theme == "light");
-    connect(lightAction, &QAction::triggered, this, [this]() { switchTheme("light"); });
+    connect(lightAction, &QAction::triggered, this, [this]() {
+        if (m_controller) m_controller->switchTheme("light");
+    });
 
-    menu.addAction(tr("Settings"), QKeySequence("F10"), this, &MainWindow::openSettings);
+    menu.addAction(tr("Settings"), QKeySequence("F10"), this, [this]() {
+        if (m_controller) m_controller->openSettingsDialog();
+    });
     menu.addSeparator();
     menu.addAction(tr("Exit"), QKeySequence("Ctrl+Q"), this, &QWidget::close);
 

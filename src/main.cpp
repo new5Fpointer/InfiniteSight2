@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     // 如果命令行传入图片路径，启动后打开
     if (argc > 1) {
         QString testPath = QString::fromLocal8Bit(argv[1]);
-        QMetaObject::invokeMethod(&window, [testPath, &window]() { emit window.imageOpenRequested(testPath); }, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(&window, [testPath, &controller]() { controller.openImage(testPath); }, Qt::QueuedConnection);
 
 #ifdef HAS_LIBVIPS
         qInfo() << "Testing vips image load:" << testPath;
