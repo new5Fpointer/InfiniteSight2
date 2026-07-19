@@ -32,7 +32,7 @@
     {
       "hidden": true,
       "name": "Qt-Default",
-      "inherits": "6.10.2_msvc2022_64",
+      "inherits": "6.10.3_msvc2022_64",
       "vendor": {
         "qt-project.org/Default": {
           "checksum": "elPMFYuVbUG1jbdnwSiZiGEbFis="
@@ -41,13 +41,13 @@
     },
     {
       "hidden": true,
-      "name": "6.10.2_msvc2022_64",
+      "name": "6.10.3_msvc2022_64",
       "inherits": [
         "Qt",
         "vips"
       ],
       "environment": {
-        "QTDIR": "D:/Qt/6.10.2/msvc2022_64",
+        "QTDIR": "D:/Qt/6.10.3/msvc2022_64",
         "VIPS_ROOT": "${sourceDir}/bin/vips-msvc"
       },
       "architecture": {
