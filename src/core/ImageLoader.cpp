@@ -139,31 +139,54 @@ void ImageLoader::loadVipsFull() {
 
         qDebug() << "VipsFull loaded:" << outWidth << "x" << outHeight << "bands:" << bands;
 
+        qDebug() << "VipsFull: format=" << vips_enum_nick(VIPS_TYPE_BAND_FORMAT, image.format())
+                 << "interpretation=" << vips_enum_nick(VIPS_TYPE_INTERPRETATION, image.interpretation())
+                 << "bands=" << bands;
+
         // 统一转换为 8 位 sRGB 或 sRGBA
         vips::VImage converted = image;
-        if (image.format() != VIPS_FORMAT_UCHAR) {
-            converted = converted.cast(VIPS_FORMAT_UCHAR);
-        }
 
+        // 第一步：在原始位深下做色彩空间转换（如有必要）
+        // 这一步必须在 cast 之前，因为 colourspace 对高位深数据的处理更准确
         if (bands == 1) {
-            // 灰度图 -> RGB (3 bands)
+            // 灰度图 -> sRGB (3 bands)
             converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
             bands = 3;
         } else if (bands == 2) {
-            // 灰度+alpha -> RGBA (4 bands)
+            // 灰度+alpha -> 先转 sRGB，再合并 alpha
             converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
-            // 提取 alpha 通道并合并
             vips::VImage alpha = image.extract_band(1);
             converted = converted.bandjoin(alpha);
             bands = 4;
         } else if (bands == 3) {
-            // RGB -> 保持
+            // 检查色彩空间
+            VipsInterpretation interp = converted.interpretation();
+            if (interp != VIPS_INTERPRETATION_sRGB) {
+                qDebug() << "VipsFull: converting 3-band from"
+                         << vips_enum_nick(VIPS_TYPE_INTERPRETATION, interp) << "to sRGB";
+                converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
+            }
         } else if (bands == 4) {
-            // RGBA -> 保持
+            VipsInterpretation interp = converted.interpretation();
+            if (interp == VIPS_INTERPRETATION_CMYK) {
+                qDebug() << "VipsFull: converting CMYK 4-band to sRGB";
+                converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
+                bands = 3;
+            } else if (interp != VIPS_INTERPRETATION_sRGB) {
+                qDebug() << "VipsFull: converting 4-band from"
+                         << vips_enum_nick(VIPS_TYPE_INTERPRETATION, interp) << "to sRGB";
+                converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
+            }
         } else if (bands > 4) {
-            // CMYK 等 -> 转 sRGB
             converted = converted.colourspace(VIPS_INTERPRETATION_sRGB);
             bands = 3;
+        }
+
+        // 第二步：降位深到 8-bit
+        if (converted.format() != VIPS_FORMAT_UCHAR) {
+            qDebug() << "VipsFull: casting from"
+                     << vips_enum_nick(VIPS_TYPE_BAND_FORMAT, converted.format()) << "to UCHAR";
+            converted = converted.cast(VIPS_FORMAT_UCHAR);
         }
 
         // 直接写入内存原始像素数据
