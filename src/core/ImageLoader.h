@@ -6,6 +6,10 @@
 #include <QPixmap>
 #include <QVariant>
 
+#ifdef HAS_LIBVIPS
+#include <vips/vips8>
+#endif
+
 class ImageLoader : public QObject {
     Q_OBJECT
 
@@ -31,6 +35,10 @@ signals:
 private:
     void loadStandard();
     void loadVipsFull();
+
+#ifdef HAS_LIBVIPS
+    static void vipsProgressCallback(VipsImage *image, VipsProgress *progress, void *userData);
+#endif
 
     ImageInfo collectImageInfo();
     ImageInfo collectVipsImageInfo();

@@ -12,6 +12,20 @@
 #include <QImageReader>
 #include <QScreen>
 
+#ifdef HAS_LIBVIPS
+// vips 进度回调函数（g_signal_connect 需要 C 函数指针）
+void ImageLoader::vipsProgressCallback(VipsImage *image, VipsProgress *progress, void *userData) {
+    auto *self = static_cast<ImageLoader *>(userData);
+
+    if (self->m_canceled) {
+        vips_image_set_kill(image, TRUE);
+        return;
+    }
+
+    emit self->progress(progress->percent);
+}
+#endif
+
 ImageLoader::ImageLoader(const QString &filePath,
                          const PerformanceSettings &perfSettings,
                          const QString &jobId,
@@ -99,7 +113,6 @@ void ImageLoader::loadVipsFull() {
 #ifdef HAS_LIBVIPS
     if (m_canceled)
         return;
-    emit progress(10);
 
     try {
         QString normalizedPath = m_filePath;
@@ -131,7 +144,6 @@ void ImageLoader::loadVipsFull() {
 
         if (m_canceled)
             return;
-        emit progress(50);
 
         int outWidth = image.width();
         int outHeight = image.height();
@@ -189,8 +201,14 @@ void ImageLoader::loadVipsFull() {
             converted = converted.cast(VIPS_FORMAT_UCHAR);
         }
 
+        // 在触发实际计算前，启用 vips 进度回调
+        vips_image_set_progress(converted.get_image(), TRUE);
+        g_signal_connect(converted.get_image(), "eval",
+                         G_CALLBACK(&ImageLoader::vipsProgressCallback), this);
+
         // 直接写入内存原始像素数据
         // vips 的 sRGB 内存数据是 RGB 顺序，QImage 的 Format_RGB888 也是 RGB 顺序，无需交换
+        // write_to_memory 会触发 vips pipeline 的实际计算，进度回调在此期间触发
         size_t memSize = 0;
         void *memBuf = vips_image_write_to_memory(converted.get_image(), &memSize);
         if (!memBuf || memSize == 0) {
@@ -231,7 +249,6 @@ void ImageLoader::loadVipsFull() {
 
         if (m_canceled)
             return;
-        emit progress(80);
 
         QPixmap pixmap = QPixmap::fromImage(qimg);
 
