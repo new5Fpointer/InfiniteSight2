@@ -678,7 +678,7 @@ void MainWindow::onInfoReady(const ImageInfo &info) {
 
 void MainWindow::onProgress(int value) {
     m_progressBar->setValue(value);
-    if (value > 0 && value < 100) {
+    if (m_performanceSettings.showLoadingProgress && value > 0 && value < 100) {
         m_progressBar->setVisible(true);
     } else if (value >= 100) {
         m_progressBar->setVisible(false);

@@ -31,4 +31,5 @@ private:
     QComboBox *m_themeCombo;
     QCheckBox *m_showInfoPanelCheck;
     QCheckBox *m_skipExifCheck;
+    QCheckBox *m_showProgressCheck;
 };

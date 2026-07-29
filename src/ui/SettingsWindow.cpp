@@ -34,6 +34,10 @@ void SettingsWindow::setupUi() {
     m_skipExifCheck->setText(tr("Skip EXIF parsing"));
     perfLayout->addRow("", m_skipExifCheck);
 
+    m_showProgressCheck = new QCheckBox(performanceGroup);
+    m_showProgressCheck->setText(tr("Show loading progress"));
+    perfLayout->addRow("", m_showProgressCheck);
+
     layout->addWidget(performanceGroup);
 
     // 外观设置组
@@ -75,6 +79,7 @@ void SettingsWindow::loadCurrentSettings() {
 
     PerformanceSettings p = m_manager->performance();
     m_skipExifCheck->setChecked(p.skipExif);
+    m_showProgressCheck->setChecked(p.showLoadingProgress);
 }
 
 void SettingsWindow::applyFromUi() {
@@ -88,6 +93,7 @@ void SettingsWindow::applyFromUi() {
 
     PerformanceSettings p = m_manager->performance();
     p.skipExif = m_skipExifCheck->isChecked();
+    p.showLoadingProgress = m_showProgressCheck->isChecked();
     m_manager->setPerformance(p);
 
     m_manager->save();

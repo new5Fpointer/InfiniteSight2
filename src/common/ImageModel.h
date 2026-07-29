@@ -67,6 +67,7 @@ struct PerformanceSettings {
     bool quickRender = false;
     bool skipExif = false;
     int cacheSize = 100;
+    bool showLoadingProgress = true;
 };
 
 // 外观设置
