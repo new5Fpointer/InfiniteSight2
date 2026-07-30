@@ -1311,6 +1311,8 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
             m_controller->navigateNext();
     } else if (event->key() == Qt::Key_F11) {
         toggleFullscreen();
+    } else if (event->key() == Qt::Key_Escape && isFullScreen()) {
+        toggleFullscreen();
     } else {
         QMainWindow::keyPressEvent(event);
     }
