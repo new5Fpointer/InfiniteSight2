@@ -180,6 +180,7 @@ void MainWindow::setupUi() {
 
     // 加载失败时在图片显示区域中央显示的损坏图标（作为 graphicsView 视口的叠加层）
     m_loadFailedLabel = new QLabel(m_graphicsView->viewport());
+    m_loadFailedLabel->setObjectName("loadFailedLabel");
     m_loadFailedLabel->setAlignment(Qt::AlignCenter);
     m_loadFailedLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
     m_loadFailedLabel->setVisible(false);
@@ -852,7 +853,8 @@ void MainWindow::applyStyleSheet() {
                         "#bottomBtn[fullscreen=\"true\"]:hover { background-color: %29; }"
                         "#infoBlock { background-color: %18; color: %15; font-size: 11px; border-radius: 4px; padding: 2px 8px; }"
                         "#infoBlock[fullscreen=\"true\"] { background-color: %30; color: %15; }"
-                        "QGraphicsView { background-color: %19; border: none; }")
+                        "QGraphicsView { background-color: %19; border: none; }"
+                        "#loadFailedLabel { background-color: transparent; border: none; }")
                         .arg(c(t.windowBackground), c(t.titleBarText), a.uiFont, QString::number(a.uiFontSize))
                         .arg(c(t.titleBarBackground), c(t.menuText), c(t.border), c(t.selected), c(t.accent), c(t.progressBackground), c(t.scrollBackground), c(t.scrollHandle), c(t.scrollHandleHover))
                         .arg(c(t.titleBarBackground), c(t.titleBarText), c(t.buttonHover), c(t.closeHover), c(t.bottomBarBackground), c(t.viewBackground))
@@ -869,6 +871,12 @@ void MainWindow::applyStyleSheet() {
         m_bottomBar->setProperty("fullscreen", isFullScreen());
         m_bottomBar->style()->unpolish(m_bottomBar);
         m_bottomBar->style()->polish(m_bottomBar);
+    }
+
+    // 确保失败图标的透明背景规则随主题重新生效
+    if (m_loadFailedLabel) {
+        m_loadFailedLabel->style()->unpolish(m_loadFailedLabel);
+        m_loadFailedLabel->style()->polish(m_loadFailedLabel);
     }
 }
 
@@ -922,6 +930,13 @@ void MainWindow::refreshIcons() {
     if (m_fullscreenBtn) {
         const QString iconName = m_fullscreenBtn->toolTip().startsWith(tr("Exit")) ? "fullscreen-exit" : "fullscreen";
         m_fullscreenBtn->setIcon(themedIcon(iconName));
+    }
+
+    // 失败图标随主题刷新（仅在正在显示时）
+    if (m_loadFailedLabel && m_loadFailedLabel->isVisible()) {
+        const int iconSize = 128;
+        m_loadFailedLabel->setPixmap(themedIcon("load-failed").pixmap(iconSize, iconSize));
+        updateLoadFailedPos();
     }
 }
 

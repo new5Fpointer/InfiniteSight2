@@ -298,8 +298,8 @@ ImageInfo ImageLoader::collectImageInfo() {
     if (reader.canRead()) {
         info.imageInfo[QStringLiteral("Format")] = reader.format().toUpper();
         info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2 pixels")
-                                           .arg(reader.size().width())
-                                           .arg(reader.size().height());
+                                                           .arg(reader.size().width())
+                                                           .arg(reader.size().height());
     }
 
     // 解析EXIF数据
@@ -344,8 +344,8 @@ ImageInfo ImageLoader::collectVipsImageInfo() {
         vips::VImage image = vips::VImage::thumbnail(utf8Path.c_str(), 64);
         info.imageInfo[QStringLiteral("Format")] = QString::fromUtf8(vips_foreign_find_load(utf8Path.c_str()));
         info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2 pixels")
-                                           .arg(image.width())
-                                           .arg(image.height());
+                                                           .arg(image.width())
+                                                           .arg(image.height());
         info.imageInfo[QStringLiteral("Bands")] = QString::number(image.bands());
         info.imageInfo[QStringLiteral("Interpretation")] = QString::fromUtf8(vips_enum_nick(VIPS_TYPE_INTERPRETATION, image.interpretation()));
     } catch (...) {
@@ -354,8 +354,8 @@ ImageInfo ImageLoader::collectVipsImageInfo() {
         if (reader.canRead()) {
             info.imageInfo[QStringLiteral("Format")] = reader.format().toUpper();
             info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2 pixels")
-                                               .arg(reader.size().width())
-                                               .arg(reader.size().height());
+                                                               .arg(reader.size().width())
+                                                               .arg(reader.size().height());
         }
     }
 #else
@@ -363,8 +363,8 @@ ImageInfo ImageLoader::collectVipsImageInfo() {
     if (reader.canRead()) {
         info.imageInfo[QStringLiteral("Format")] = reader.format().toUpper();
         info.imageInfo[QStringLiteral("Dimensions")] = QStringLiteral("%1 x %2 pixels")
-                                           .arg(reader.size().width())
-                                           .arg(reader.size().height());
+                                                           .arg(reader.size().width())
+                                                           .arg(reader.size().height());
     }
 #endif
 
