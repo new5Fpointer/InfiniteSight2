@@ -35,6 +35,7 @@ public slots:
     void onImageLoaded(const ImageViewModel &viewModel);
     void onInfoReady(const ImageInfo &info);
     void onProgress(int value);
+    void onLoadFailed(const QString &filePath);
     void onViewStateChanged(const ViewState &state);
     void onSettingsApplied(const GeneralSettings &g, const PerformanceSettings &p, const AppearanceSettings &a);
 
@@ -87,6 +88,7 @@ private:
     void updateTitleBarTitle();
     void updateBottomBarInfo();
     void updateCenterContainerPos();
+    void updateLoadFailedPos();
     void onThemeChanged();
     ResizeEdge getResizeEdge(const QPoint &pos) const;
     void updateCursorForResize(ResizeEdge edge);
@@ -138,6 +140,7 @@ private:
     QTreeWidget *m_infoTree;
     QProgressBar *m_progressBar;
     QLabel *m_loadingLabel;
+    QLabel *m_loadFailedLabel;
     QLabel *m_roamLabel;
 
     QMenu *m_fileMenu;

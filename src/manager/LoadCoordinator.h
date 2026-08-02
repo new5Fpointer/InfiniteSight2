@@ -20,11 +20,13 @@ signals:
     void imageLoaded(const ImageViewModel &viewModel);
     void infoReady(const ImageInfo &info);
     void progress(int value);
+    void loadFailed(const QString &filePath);
 
 private slots:
     void onLoadResultReady(const LoadResult &result);
     void onInfoReady(const ImageInfo &info);
     void onProgress(int value);
+    void onLoadError(const QString &filePath, const QString &jobId);
 
 private:
     void stopCurrentJob();

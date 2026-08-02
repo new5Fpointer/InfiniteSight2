@@ -32,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent)
       m_pixmapItem(nullptr),
       m_progressBar(new QProgressBar(this)),
       m_loadingLabel(new QLabel(this)),
+      m_loadFailedLabel(nullptr),
       m_roamLabel(new QLabel(this)),
       m_fileInfoLabel(nullptr),
       m_fileSizeLabel(nullptr),
@@ -176,6 +177,13 @@ void MainWindow::setupUi() {
     m_progressBar->setVisible(false);
     m_progressBar->setRange(0, 100);
     imageLayout->addWidget(m_progressBar);
+
+    // 加载失败时在图片显示区域中央显示的损坏图标（作为 graphicsView 视口的叠加层）
+    m_loadFailedLabel = new QLabel(m_graphicsView->viewport());
+    m_loadFailedLabel->setAlignment(Qt::AlignCenter);
+    m_loadFailedLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_loadFailedLabel->setVisible(false);
+    m_loadFailedLabel->raise();
 
     m_infoDock = new QDockWidget(tr("Image Information"), this);
     m_infoDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
@@ -636,6 +644,8 @@ void MainWindow::onImageLoaded(const ImageViewModel &viewModel) {
 
     m_loadingLabel->setVisible(false);
     m_progressBar->setVisible(false);
+    if (m_loadFailedLabel)
+        m_loadFailedLabel->setVisible(false);
     qInfo() << "Image loaded:" << QFileInfo(viewModel.filePath).fileName();
 
     updateTitleBarTitle();
@@ -680,9 +690,49 @@ void MainWindow::onProgress(int value) {
     m_progressBar->setValue(value);
     if (m_performanceSettings.showLoadingProgress && value > 0 && value < 100) {
         m_progressBar->setVisible(true);
+        // 新一轮加载开始，隐藏上一次的失败图标
+        if (m_loadFailedLabel && m_loadFailedLabel->isVisible())
+            m_loadFailedLabel->setVisible(false);
     } else if (value >= 100) {
         m_progressBar->setVisible(false);
     }
+}
+
+void MainWindow::onLoadFailed(const QString &filePath) {
+    qWarning() << "Image load failed:" << QFileInfo(filePath).fileName();
+
+    // 错误后直接结束进度条
+    m_progressBar->setValue(100);
+    m_progressBar->setVisible(false);
+    m_loadingLabel->setVisible(false);
+
+    // 清空画布，避免残留上一张图片
+    m_graphicsScene->clear();
+    m_pixmapItem = nullptr;
+    resetCanvas();
+
+    // 在图片显示区域中央显示损坏图标
+    if (m_loadFailedLabel) {
+        const int iconSize = 128;
+        m_loadFailedLabel->setPixmap(themedIcon("load-failed").pixmap(iconSize, iconSize));
+        updateLoadFailedPos();
+        m_loadFailedLabel->show();
+        m_loadFailedLabel->raise();
+    }
+}
+
+void MainWindow::updateLoadFailedPos() {
+    if (!m_loadFailedLabel || !m_graphicsView)
+        return;
+
+    QSize sz = m_loadFailedLabel->sizeHint();
+    if (sz.isEmpty())
+        return;
+
+    QRect vp = m_graphicsView->viewport()->rect();
+    m_loadFailedLabel->setGeometry(vp.center().x() - sz.width() / 2,
+                                   vp.center().y() - sz.height() / 2,
+                                   sz.width(), sz.height());
 }
 
 void MainWindow::onViewStateChanged(const ViewState &state) {
@@ -1028,6 +1078,10 @@ void MainWindow::hideBottomBarAnimated() {
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == m_graphicsView->viewport() && event->type() == QEvent::Resize) {
+        updateLoadFailedPos();
+    }
+
     if ((obj == m_graphicsView || obj == m_graphicsView->viewport()) && event->type() == QEvent::KeyPress) {
         QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
         if (keyEvent->key() == Qt::Key_Left) {

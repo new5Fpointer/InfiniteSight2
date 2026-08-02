@@ -43,6 +43,7 @@ private slots:
     void onImageLoaded(const ImageViewModel &viewModel);
     void onInfoReady(const ImageInfo &info);
     void onProgress(int value);
+    void onLoadFailed(const QString &filePath);
     void onViewStateChanged(const ViewState &state);
 
 private:

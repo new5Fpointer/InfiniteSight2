@@ -81,6 +81,7 @@ void ImageLoader::loadStandard() {
 
     if (!loaded || pixmap.isNull()) {
         qWarning() << "Failed to load image:" << QFileInfo(m_filePath).fileName();
+        emit errorOccurred(m_filePath, m_jobId);
         emit finished(QPixmap(), QStringLiteral("Error: Failed to load image"), m_jobId);
         return;
     }

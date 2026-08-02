@@ -51,6 +51,7 @@ void LoadCoordinator::load(const QString &filePath, const PerformanceSettings &p
     if (!cacheHit) {
         connect(m_loader, &ImageLoader::loadResultReady, this, &LoadCoordinator::onLoadResultReady, Qt::QueuedConnection);
         connect(m_loader, &ImageLoader::progress, this, &LoadCoordinator::onProgress, Qt::QueuedConnection);
+        connect(m_loader, &ImageLoader::errorOccurred, this, &LoadCoordinator::onLoadError, Qt::QueuedConnection);
     }
 
     m_thread->start();
@@ -113,6 +114,18 @@ void LoadCoordinator::onInfoReady(const ImageInfo &info) {
 
 void LoadCoordinator::onProgress(int value) {
     emit progress(value);
+}
+
+void LoadCoordinator::onLoadError(const QString &filePath, const QString &jobId) {
+    if (jobId != m_currentJobId)
+        return;
+
+    emit loadFailed(filePath);
+
+    // 错误后直接结束当前加载线程
+    if (m_thread) {
+        m_thread->quit();
+    }
 }
 
 ImageViewModel LoadCoordinator::buildViewModel(const LoadResult &result) const {

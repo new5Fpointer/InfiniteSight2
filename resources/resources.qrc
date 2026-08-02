@@ -21,6 +21,7 @@
         <file>icons/dark/rotate-right.svg</file>
         <file>icons/dark/zoom-in.svg</file>
         <file>icons/dark/zoom-out.svg</file>
+        <file>icons/dark/load-failed.svg</file>
         <file>icons/light/actual-size.svg</file>
         <file>icons/light/chevron-left.svg</file>
         <file>icons/light/chevron-right.svg</file>
@@ -42,5 +43,6 @@
         <file>icons/light/rotate-right.svg</file>
         <file>icons/light/zoom-in.svg</file>
         <file>icons/light/zoom-out.svg</file>
+        <file>icons/light/load-failed.svg</file>
     </qresource>
 </RCC>

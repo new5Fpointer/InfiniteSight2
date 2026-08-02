@@ -27,6 +27,8 @@ AppController::AppController(MainWindow *mainWindow, QObject *parent)
             this, &AppController::onInfoReady);
     connect(m_loadCoordinator, &LoadCoordinator::progress,
             this, &AppController::onProgress);
+    connect(m_loadCoordinator, &LoadCoordinator::loadFailed,
+            this, &AppController::onLoadFailed);
     connect(m_viewStateManager, &ViewStateManager::viewStateChanged,
             this, &AppController::onViewStateChanged);
 
@@ -167,6 +169,10 @@ void AppController::onInfoReady(const ImageInfo &info) {
 
 void AppController::onProgress(int value) {
     m_mainWindow->onProgress(value);
+}
+
+void AppController::onLoadFailed(const QString &filePath) {
+    m_mainWindow->onLoadFailed(filePath);
 }
 
 void AppController::onViewStateChanged(const ViewState &state) {

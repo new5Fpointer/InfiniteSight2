@@ -31,6 +31,7 @@ signals:
     void infoReady(const ImageInfo &info, const QString &jobId);
     void progress(int value);
     void loadResultReady(const LoadResult &result, const QString &jobId);
+    void errorOccurred(const QString &filePath, const QString &jobId);
 
 private:
     void loadStandard();
