@@ -83,6 +83,7 @@ private:
     void resetCanvas();
     void applyStyleSheet();
     void applyViewState();
+    QTransform currentDisplayTransform() const;
     QIcon themedIcon(const QString &name);
     void refreshIcons();
     void updateTitleBarTitle();

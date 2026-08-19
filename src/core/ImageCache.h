@@ -12,6 +12,7 @@ struct CacheEntry {
     int originalWidth = 0;
     int originalHeight = 0;
     bool isDownsampled = false;
+    int orientation = 0; // EXIF Orientation，缓存命中时用于自动旋转
     qint64 timestamp = 0;
 };
 
@@ -23,7 +24,7 @@ public:
     bool contains(const QString &filePath) const;
     QPixmap getPixmap(const QString &filePath) const;
     CacheEntry getEntry(const QString &filePath) const;
-    void insert(const QString &filePath, const QPixmap &pixmap, int originalW = 0, int originalH = 0, bool downsampled = false);
+    void insert(const QString &filePath, const QPixmap &pixmap, int originalW = 0, int originalH = 0, bool downsampled = false, int orientation = 0);
     void remove(const QString &filePath);
     void clear();
     int totalCost() const;

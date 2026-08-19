@@ -237,13 +237,14 @@ void ImageLoader::loadVipsFull() {
 
         // vips 内存数据没有行对齐，QImage 需要指定正确的 bytesPerLine
         int vipsBytesPerLine = outWidth * bytesPerPixel;
-        QImage qimg(static_cast<const uchar *>(memBuf), outWidth, outHeight, vipsBytesPerLine, qFormat);
-        // 深拷贝（QImage 使用共享数据，需要确保内存释放后数据仍然有效）
-        qimg = qimg.copy();
-        g_free(memBuf);
+        // 直接从 vips 缓冲构建 QImage：通过 cleanup 回调让 QImage 接管 memBuf，
+        // 避免深拷贝造成双倍内存占用（memBuf 由 vips 的 g_malloc 分配，用 g_free 释放）
+        QImage qimg(static_cast<const uchar *>(memBuf), outWidth, outHeight, vipsBytesPerLine, qFormat, [](void *p) { g_free(p); }, memBuf);
 
         if (qimg.isNull()) {
             qWarning() << "Vips full: QImage from buffer failed, falling back";
+            // 构造失败时 QImage 不会调用 cleanup，需手动释放
+            g_free(memBuf);
             loadStandard();
             return;
         }
@@ -251,7 +252,7 @@ void ImageLoader::loadVipsFull() {
         if (m_canceled)
             return;
 
-        QPixmap pixmap = QPixmap::fromImage(qimg);
+        QPixmap pixmap = QPixmap::fromImage(std::move(qimg));
 
         ImageInfo info = collectVipsImageInfo();
         info.imageInfo[QStringLiteral("Load Strategy")] = QStringLiteral("VipsFull");
@@ -304,6 +305,7 @@ ImageInfo ImageLoader::collectImageInfo() {
 
     // 解析EXIF数据
     ExifParser::ExifData exif = ExifParser::parse(m_filePath);
+    info.orientation = exif.orientation;
     auto displayMap = exif.toDisplayMap();
     for (auto it = displayMap.begin(); it != displayMap.end(); ++it) {
         info.exifInfo[it.key()] = it.value();
@@ -370,6 +372,7 @@ ImageInfo ImageLoader::collectVipsImageInfo() {
 
     // 解析EXIF数据
     ExifParser::ExifData exif = ExifParser::parse(m_filePath);
+    info.orientation = exif.orientation;
     auto displayMap = exif.toDisplayMap();
     for (auto it = displayMap.begin(); it != displayMap.end(); ++it) {
         info.exifInfo[it.key()] = it.value();

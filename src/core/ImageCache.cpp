@@ -48,7 +48,7 @@ CacheEntry ImageCache::getEntry(const QString &filePath) const {
     return CacheEntry();
 }
 
-void ImageCache::insert(const QString &filePath, const QPixmap &pixmap, int originalW, int originalH, bool downsampled) {
+void ImageCache::insert(const QString &filePath, const QPixmap &pixmap, int originalW, int originalH, bool downsampled, int orientation) {
     if (pixmap.isNull()) return;
 
     QMutexLocker locker(&m_mutex);
@@ -63,6 +63,7 @@ void ImageCache::insert(const QString &filePath, const QPixmap &pixmap, int orig
     entry->originalWidth = originalW;
     entry->originalHeight = originalH;
     entry->isDownsampled = downsampled;
+    entry->orientation = orientation;
     entry->timestamp = QDateTime::currentMSecsSinceEpoch();
 
     m_cache.insert(filePath, entry, cost);

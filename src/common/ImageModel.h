@@ -13,6 +13,7 @@ struct ImageInfo {
     QMap<QString, QString> imageInfo;
     QMap<QString, QVariant> exifInfo;
     QString error;
+    int orientation = 0; // EXIF Orientation: 0=未知/无, 1=正常, 2-8 见 EXIF 规范
 };
 
 // 图像加载原始结果（Backend 输出）

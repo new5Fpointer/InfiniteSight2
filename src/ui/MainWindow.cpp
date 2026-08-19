@@ -25,6 +25,25 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
+// 将 EXIF Orientation (1-8) 转换为对应的基础变换。
+// 与 Qt 内置的自动方向处理保持一致：
+//   1=正常, 2=水平镜像, 3=旋转180°, 4=垂直镜像,
+//   5=transpose(对角镜像), 6=旋转90°CW, 7=transverse(反对角镜像), 8=旋转270°CW
+static QTransform exifOrientationTransform(int orientation) {
+    QTransform t;
+    switch (orientation) {
+    case 2: t.scale(-1, 1); break;                // 水平镜像
+    case 3: t.rotate(180); break;                 // 180°
+    case 4: t.scale(1, -1); break;                // 垂直镜像
+    case 5: t.scale(-1, 1); t.rotate(270); break; // transpose
+    case 6: t.rotate(90); break;                  // 90° CW
+    case 7: t.scale(1, -1); t.rotate(270); break; // transverse
+    case 8: t.rotate(270); break;                 // 270° CW
+    default: break;                               // 0/1: 无需处理
+    }
+    return t;
+}
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       m_graphicsView(new ZoomableGraphicsView(this)),
@@ -745,17 +764,10 @@ void MainWindow::applyViewState() {
     if (!m_pixmapItem || m_currentViewModel.pixmap.isNull())
         return;
 
-    QTransform transform;
-    if (m_currentViewState.mirrored)
-        transform.scale(-1, 1);
-    if (m_currentViewState.rotation != 0)
-        transform.rotate(m_currentViewState.rotation);
-
-    if (transform.isIdentity()) {
-        m_pixmapItem->setPixmap(m_currentViewModel.pixmap);
-    } else {
-        m_pixmapItem->setPixmap(m_currentViewModel.pixmap.transformed(transform, Qt::SmoothTransformation));
-    }
+    // 通过 item 变换实现旋转/镜像（含 EXIF 自动方向）：
+    // 不重新光栅化像素，远快于 QPixmap::transformed()
+    m_pixmapItem->setPixmap(m_currentViewModel.pixmap);
+    m_pixmapItem->setTransform(currentDisplayTransform());
 
     m_graphicsView->resetTransform();
     m_graphicsView->setSceneRect(m_graphicsScene->itemsBoundingRect());
@@ -772,6 +784,16 @@ void MainWindow::applyViewState() {
 
     updateBottomBarInfo();
     refreshIcons();
+}
+
+// 组合变换：先应用 EXIF 方向（作用于原始像素），再叠加用户旋转/镜像
+QTransform MainWindow::currentDisplayTransform() const {
+    QTransform transform = exifOrientationTransform(m_currentViewModel.info.orientation);
+    if (m_currentViewState.mirrored)
+        transform.scale(-1, 1);
+    if (m_currentViewState.rotation != 0)
+        transform.rotate(m_currentViewState.rotation);
+    return transform;
 }
 
 void MainWindow::onSettingsApplied(const GeneralSettings &g, const PerformanceSettings &p, const AppearanceSettings &a) {

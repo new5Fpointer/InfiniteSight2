@@ -33,6 +33,7 @@ void LoadCoordinator::load(const QString &filePath, const PerformanceSettings &p
         cachedResult.originalWidth = entry.originalWidth;
         cachedResult.originalHeight = entry.originalHeight;
         cachedResult.isDownsampled = entry.isDownsampled;
+        cachedResult.info.orientation = entry.orientation;
 
         ImageViewModel viewModel = buildViewModel(cachedResult);
         emit imageLoaded(viewModel);
@@ -91,7 +92,8 @@ void LoadCoordinator::onLoadResultReady(const LoadResult &result) {
                                       result.pixmap,
                                       result.originalWidth,
                                       result.originalHeight,
-                                      result.isDownsampled);
+                                      result.isDownsampled,
+                                      result.info.orientation);
     }
 
     ImageViewModel viewModel = buildViewModel(result);
