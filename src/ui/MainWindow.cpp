@@ -402,7 +402,12 @@ void MainWindow::createBottomBar() {
     m_copyBtn->setToolTip(tr("Copy Image"));
     connect(m_copyBtn, &QPushButton::clicked, this, [this]() {
         if (m_pixmapItem && !m_pixmapItem->pixmap().isNull()) {
-            QApplication::clipboard()->setPixmap(m_pixmapItem->pixmap());
+            // 复制当前显示朝向的图（包含 EXIF 自动方向 + 用户旋转/镜像）
+            QPixmap toCopy = m_currentViewModel.pixmap;
+            QTransform t = currentDisplayTransform();
+            if (!t.isIdentity())
+                toCopy = toCopy.transformed(t, Qt::SmoothTransformation);
+            QApplication::clipboard()->setPixmap(toCopy);
             qInfo() << "Image copied to clipboard:" << QFileInfo(m_currentViewModel.filePath).fileName();
         }
     });
