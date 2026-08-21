@@ -661,6 +661,10 @@ void MainWindow::onImageLoaded(const ImageViewModel &viewModel) {
     m_pixmapItem->setTransformationMode(Qt::SmoothTransformation);
     m_graphicsScene->addItem(m_pixmapItem);
 
+    // 有图可显示：恢复按需显示滚动条（onLoadFailed 失败时被置为 AlwaysOff）
+    m_graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
     m_currentViewState = viewModel.viewState;
     applyViewState();
 
@@ -723,7 +727,7 @@ void MainWindow::onProgress(int value) {
     }
 }
 
-void MainWindow::onLoadFailed(const QString &filePath) {
+void MainWindow::onLoadFailed(const QString &filePath, int currentIndex, int total) {
     qWarning() << "Image load failed:" << QFileInfo(filePath).fileName();
 
     // 错误后直接结束进度条
@@ -735,6 +739,66 @@ void MainWindow::onLoadFailed(const QString &filePath) {
     m_graphicsScene->clear();
     m_pixmapItem = nullptr;
     resetCanvas();
+
+    // 显式重置场景矩形与滚动条，避免上一张大图留下的滚动条残留
+    m_graphicsView->setSceneRect(QRectF(0, 0, 0, 0));
+    m_graphicsView->horizontalScrollBar()->setRange(0, 0);
+    m_graphicsView->verticalScrollBar()->setRange(0, 0);
+    m_graphicsView->horizontalScrollBar()->setValue(0);
+    m_graphicsView->verticalScrollBar()->setValue(0);
+
+    // 失败/无图状态强制关闭滚动条：仅仅 setRange(0,0) 不够——
+    // QGraphicsScene::clear() 后场景自身的 sceneRect 仍残留上一张大图的尺寸，
+    // 之后视口一旦调整（如隐藏进度条/加载标签引起布局重排），QGraphicsView 会按
+    // 过期的 sceneRect 重新算出非零的滚动条范围，导致滚动条重新出现。
+    // ScrollBarAlwaysOff 可保证任何情况下都不显示滚动条；
+    // 加载成功后由 onImageLoaded 恢复为 AsNeeded。
+    m_graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    // 信息面板：给出失败文件的文件信息，图片信息显示加载失败提示
+    if (m_infoTree) {
+        m_infoTree->clear();
+
+        QFileInfo fi(filePath);
+        QMap<QString, QString> fileInfo;
+        fileInfo[QStringLiteral("File Name")] = fi.fileName();
+        fileInfo[QStringLiteral("Path")] = fi.absoluteFilePath();
+        fileInfo[QStringLiteral("Size")] = QStringLiteral("%1 KB").arg(fi.size() / 1024.0, 0, 'f', 2);
+        fileInfo[QStringLiteral("Modified")] = fi.lastModified().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss"));
+
+        auto addSection = [this](const QString &title, const QMap<QString, QString> &data) {
+            if (data.isEmpty())
+                return;
+            QTreeWidgetItem *root = new QTreeWidgetItem(m_infoTree, {title});
+            for (auto it = data.begin(); it != data.end(); ++it) {
+                new QTreeWidgetItem(root, {QString("%1: %2").arg(it.key(), it.value())});
+            }
+            root->setExpanded(true);
+        };
+
+        addSection(tr("File Information"), fileInfo);
+
+        QTreeWidgetItem *imgRoot = new QTreeWidgetItem(m_infoTree, {tr("Image Information")});
+        new QTreeWidgetItem(imgRoot, {tr("Image loading failed")});
+        imgRoot->setExpanded(true);
+    }
+
+    // 重置视图模型为失败图片：仅保留文件信息与导航位置，清除图片数据
+    ImageViewModel failedVm;
+    failedVm.filePath = filePath;
+    failedVm.fileName = QFileInfo(filePath).fileName();
+    failedVm.fileSize = QFileInfo(filePath).size();
+    failedVm.currentIndex = currentIndex;
+    failedVm.total = total;
+    m_currentViewModel = failedVm;
+
+    // 失败后缩放回到 100%
+    m_currentViewState.scaleFactor = 1.0;
+    m_currentViewState.isFitToWindow = false;
+
+    updateTitleBarTitle();
+    updateBottomBarInfo();
 
     // 在图片显示区域中央显示损坏图标
     if (m_loadFailedLabel) {

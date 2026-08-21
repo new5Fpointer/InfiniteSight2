@@ -35,7 +35,7 @@ public slots:
     void onImageLoaded(const ImageViewModel &viewModel);
     void onInfoReady(const ImageInfo &info);
     void onProgress(int value);
-    void onLoadFailed(const QString &filePath);
+    void onLoadFailed(const QString &filePath, int currentIndex, int total);
     void onViewStateChanged(const ViewState &state);
     void onSettingsApplied(const GeneralSettings &g, const PerformanceSettings &p, const AppearanceSettings &a);
 

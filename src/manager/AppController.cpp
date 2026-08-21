@@ -172,7 +172,7 @@ void AppController::onProgress(int value) {
 }
 
 void AppController::onLoadFailed(const QString &filePath) {
-    m_mainWindow->onLoadFailed(filePath);
+    m_mainWindow->onLoadFailed(filePath, m_navigator->currentIndex(), m_navigator->total());
 }
 
 void AppController::onViewStateChanged(const ViewState &state) {
