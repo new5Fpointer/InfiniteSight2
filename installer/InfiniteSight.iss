@@ -2,7 +2,7 @@
 ; 编译: iscc.exe "installer\InfiniteSight.iss"
 
 #define MyAppName "InfiniteSight"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "InfiniteSight"
 #define MyAppURL "https://github.com/InfiniteSight"
 #define MyAppExeName "InfiniteSight.exe"
